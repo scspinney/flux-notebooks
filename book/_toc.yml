@@ -1,0 +1,5 @@
+format: jb-book
+root: intro
+chapters:
+  - file: datasets/todo-name-of-the-dataset/bids_summary
+    title: "TODO: name of the dataset"

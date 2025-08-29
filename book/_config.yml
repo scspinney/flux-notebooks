@@ -1,0 +1,45 @@
+# Jupyter Book config for flux-notebooks
+title: Flux Notebooks — Datasets
+only_build_toc_files: true
+
+# We save outputs in the notebooks already; keep JB execution off.
+execute:
+  execute_notebooks: "off"
+  timeout: 900
+  allow_errors: false
+  stderr_output: "show"
+  exclude_patterns:
+    - "**/.ipynb_checkpoints/**"
+
+# Metadata so Binder/Thebe know what repo to launch
+repository:
+  url: https://github.com/scspinney/flux-notebooks
+  branch: main
+  path_to_book: book
+
+# Show launch buttons and allow in-page kernels via Thebe
+launch_buttons:
+  binderhub_url: https://mybinder.org
+  notebook_interface: jupyterlab
+
+thebe: true
+
+html:
+  use_repository_button: true
+  use_issues_button: false
+  use_edit_page_button: false
+  navbar_number_sections: false
+  baseurl: ""
+
+sphinx:
+  config:
+    # Prefer embedding widget views if they exist; live interactivity comes from Thebe.
+    nb_render_priority:
+      html:
+        application/vnd.jupyter.widget-view+json: 10
+        text/html: 20
+        image/svg+xml: 30
+        image/png: 40
+        text/plain: 50
+    html_show_sourcelink: false
+    html_show_copyright: false

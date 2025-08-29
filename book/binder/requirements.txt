@@ -1,0 +1,8 @@
+ipywidgets>=8
+pandas
+numpy
+matplotlib
+seaborn
+pybids>=0.16
+ipykernel
+nibabel
