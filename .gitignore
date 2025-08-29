@@ -1,3 +1,6 @@
 .venv
 *.csv
 reports/
+src/flux_notebooks/__pycache__/
+*.pyc
+*.egg*

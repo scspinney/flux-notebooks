@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import datetime as _dt
 
 import typer
 
 from .bids.summarize_bids import summarize_with_pybids
 from .config import Settings
-from .notebooks.builder import render_notebook, save_tables, write_notebook
+from .notebooks.builder import build_summary_notebook, save_tables, write_notebook
 
 app = typer.Typer(add_completion=False)
 
@@ -30,19 +31,16 @@ def generate(
     summary = summarize_with_pybids(settings.dataset_root, validate=settings.validate_bids)
     save_tables(summary, settings.outdir)
 
-    nb = render_notebook(
-        template_dir=Path(__file__).parent / "notebooks" / "templates",
-        template_name="summary.ipynb.j2",
-        context={
-            "dataset_root": str(settings.dataset_root),
-            "generated": __import__("datetime").datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-            "n_subjects": len(summary["subjects"]),
-            "n_sessions": len(summary["sessions"]),
-            "n_tasks": len(summary["tasks"]),
-            "datatypes": summary["datatypes"],
-            "outdir": str(settings.outdir),
-        },
-    )
+    context = {
+        "dataset_root": settings.dataset_root,
+        "outdir": settings.outdir,
+        "generated": _dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        "n_subjects": len(summary["subjects"]),
+        "n_sessions": len(summary["sessions"]),
+        "n_tasks": len(summary["tasks"]),
+        "datatypes": summary["datatypes"],
+    }
+    nb = build_summary_notebook(context)
     out_nb = settings.outdir / "bids_summary.ipynb"
     write_notebook(nb, out_nb)
     typer.echo(f"Wrote: {out_nb}")

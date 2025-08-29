@@ -15,6 +15,7 @@ src/flux_notebooks.egg-info/top_level.txt
 src/flux_notebooks/bids/__init__.py
 src/flux_notebooks/bids/summarize_bids.py
 src/flux_notebooks/notebooks/builder.py
+src/flux_notebooks/notebooks/sections.py
 src/flux_notebooks/plugins/base.py
 src/flux_notebooks/plugins/registry.py
 src/flux_notebooks/plugins/builtin/availability.py
