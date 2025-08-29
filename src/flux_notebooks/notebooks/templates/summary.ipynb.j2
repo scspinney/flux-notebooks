@@ -1,0 +1,324 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "id": "intro-1",
+      "metadata": {},
+      "source": [
+        "# Dataset Summary (flux-notebooks)\n",
+        "**Root:** `{{ dataset_root }}`  \n",
+        "**Generated:** {{ generated }}\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "init-1",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "from pathlib import Path\n",
+        "import json, os, re\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import ipywidgets as widgets\n",
+        "from IPython.display import display, Markdown, HTML\n",
+        "\n",
+        "# --- Presentation tweaks (wider notebook, no truncated cells/paths) ---\n",
+        "HTML(\"\"\"\n",
+        "<style>\n",
+        ".jp-Notebook { max-width: 1400px !important; }\n",
+        ".jp-Cell .jp-Cell-inputWrapper { max-width: 1400px !important; }\n",
+        "table { font-size: 14px; }\n",
+        "td { white-space: pre-wrap !important; word-break: break-all !important; }\n",
+        "</style>\n",
+        "\"\"\")\n",
+        "pd.set_option('display.max_colwidth', None)\n",
+        "plt.rcParams['figure.figsize'] = (10, 4)\n",
+        "plt.rcParams['figure.dpi'] = 120\n",
+        "\n",
+        "outdir = Path(r'{{ outdir }}')\n",
+        "avail = pd.read_csv(outdir/'avail.csv') if (outdir/'avail.csv').exists() else None\n",
+        "func  = pd.read_csv(outdir/'func_counts.csv') if (outdir/'func_counts.csv').exists() else None\n",
+        "\n",
+        "n_subjects={{ n_subjects }}; n_sessions={{ n_sessions }}; n_tasks={{ n_tasks }}; datatypes={{ datatypes }}\n",
+        "print('Subjects:', n_subjects)\n",
+        "print('Sessions:', n_sessions)\n",
+        "print('Tasks:', n_tasks)\n",
+        "print('Datatypes:', datatypes)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "meta-1",
+      "metadata": {},
+      "source": [
+        "## Dataset metadata\n",
+        "We try to read `dataset_description.json` and `participants.tsv` if present."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "meta-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "ds_desc_path = Path(r'{{ dataset_root }}')/'dataset_description.json'\n",
+        "ds_desc = json.loads(ds_desc_path.read_text()) if ds_desc_path.exists() else {}\n",
+        "display(pd.DataFrame([ds_desc])) if ds_desc else display(Markdown('_No dataset_description.json found._'))\n",
+        "\n",
+        "pt_path = Path(r'{{ dataset_root }}')/'participants.tsv'\n",
+        "participants = pd.read_csv(pt_path, sep='\\t', dtype=str) if pt_path.exists() else None\n",
+        "if isinstance(participants, pd.DataFrame):\n",
+        "    display(participants.head())\n",
+        "    # quick summaries if age/sex present\n",
+        "    if any(c.lower().startswith('age') for c in participants.columns):\n",
+        "        age_col = [c for c in participants.columns if c.lower().startswith('age')][0]\n",
+        "        with pd.option_context('mode.use_inf_as_na', True):\n",
+        "            ages = pd.to_numeric(participants[age_col], errors='coerce')\n",
+        "        display(pd.DataFrame({'n': [ages.notna().sum()], 'min':[ages.min()], 'median':[ages.median()], 'max':[ages.max()]}))\n",
+        "    if any(c.lower() in ('sex','gender') for c in participants.columns):\n",
+        "        sex_col = [c for c in participants.columns if c.lower() in ('sex','gender')][0]\n",
+        "        display(participants[sex_col].str.lower().value_counts().rename_axis('sex').to_frame('count'))\n",
+        "else:\n",
+        "    display(Markdown('_No participants.tsv found._'))"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "kpi-1",
+      "metadata": {},
+      "source": [
+        "## KPIs"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "kpi-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "# size_by_datatype: generated on the Python side and saved? we recompute quickly here for robustness\n",
+        "from collections import defaultdict\n",
+        "try:\n",
+        "    size_by_dt = defaultdict(int)\n",
+        "    # When avail exists we know which datatypes are present\n",
+        "    if isinstance(avail, pd.DataFrame):\n",
+        "        for dt in avail.columns:\n",
+        "            # Best-effort: sum sizes from the dataset folder per datatype folder\n",
+        "            dt_dir = Path(r'{{ dataset_root }}')/dt\n",
+        "            if dt_dir.exists():\n",
+        "                for p,_,files in os.walk(dt_dir):\n",
+        "                    for f in files:\n",
+        "                        try:\n",
+        "                            size_by_dt[dt] += (Path(p)/f).stat().st_size\n",
+        "                        except Exception:\n",
+        "                            pass\n",
+        "    size_df = pd.DataFrame({'datatype': list(size_by_dt.keys()), 'GB': [v/(1024**3) for v in size_by_dt.values()]})\n",
+        "    if not size_df.empty:\n",
+        "        display(size_df.sort_values('GB', ascending=False).reset_index(drop=True))\n",
+        "except Exception as e:\n",
+        "    print('Size calc skipped:', e)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "avail-1",
+      "metadata": {},
+      "source": [
+        "## Subject × datatype availability"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "avail-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "if isinstance(avail, pd.DataFrame):\n",
+        "    A = avail.copy()\n",
+        "    if 'sub' in A.columns:\n",
+        "        A = A.set_index('sub')\n",
+        "    # 1) table\n",
+        "    display(A)\n",
+        "    # 2) totals per datatype\n",
+        "    totals = A.sum(axis=0).sort_values(ascending=False)\n",
+        "    plt.figure(figsize=(max(8, 0.6*len(totals)), 4))\n",
+        "    totals.plot(kind='bar')\n",
+        "    plt.ylabel('files'); plt.title('Total files per datatype')\n",
+        "    plt.tight_layout(); plt.show()\n",
+        "    # 3) totals per subject\n",
+        "    per_sub = A.sum(axis=1).sort_values(ascending=False)\n",
+        "    plt.figure(figsize=(max(8, 0.35*len(per_sub)), 4))\n",
+        "    per_sub.plot(kind='bar')\n",
+        "    plt.ylabel('files'); plt.title('Total files per subject')\n",
+        "    plt.tight_layout(); plt.show()\n",
+        "else:\n",
+        "    display('No availability table.')"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "func-1",
+      "metadata": {},
+      "source": [
+        "## Functional runs by task (interactive)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "func-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "if isinstance(func, pd.DataFrame) and not func.empty:\n",
+        "    func = func.set_index('subject') if 'subject' in func.columns else func\n",
+        "    tasks = list(func.columns)\n",
+        "    task_dd = widgets.Dropdown(options=tasks, description='Task')\n",
+        "\n",
+        "    def _bar(task):\n",
+        "        s = func[task].sort_values(ascending=False)\n",
+        "        plt.figure(figsize=(max(10, 0.35*len(s)), 4))\n",
+        "        s.plot(kind='bar')\n",
+        "        plt.ylabel('# runs'); plt.title(f'Runs per subject — {task}')\n",
+        "        plt.tight_layout(); plt.show()\n",
+        "\n",
+        "    out = widgets.interactive_output(_bar, {'task': task_dd})\n",
+        "    display(task_dd, out)\n",
+        "else:\n",
+        "    display('No functional runs found.')"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "tr-1",
+      "metadata": {},
+      "source": [
+        "## Functional TR by task"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "tr-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "# Load precomputed TR table if present, otherwise best-effort recompute (skipped here for speed)\n",
+        "tr_csv = outdir/'tr_by_task.csv'\n",
+        "tr_by_task = pd.read_csv(tr_csv) if tr_csv.exists() else None\n",
+        "display(tr_by_task if isinstance(tr_by_task, pd.DataFrame) else 'TR table not available in this build.')"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "files-1",
+      "metadata": {},
+      "source": [
+        "## Explore files (BIDS explorer + substring search)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "id": "files-2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": [],
+      "source": [
+        "from bids import BIDSLayout\n",
+        "base = Path(r'{{ dataset_root }}')\n",
+        "layout = None\n",
+        "try:\n",
+        "    layout = BIDSLayout(base, validate=False)\n",
+        "except Exception as e:\n",
+        "    display(Markdown(f\"_PyBIDS init failed (fallback to string search): {str(e)}_\"))\n",
+        "\n",
+        "# Widgets: subject/session/task/datatype/suffix + free-text contains filter\n",
+        "sub_opts  = sorted(layout.get_subjects()) if layout else []\n",
+        "ses_opts  = sorted(layout.get_sessions()) if layout else []\n",
+        "task_opts = sorted(layout.get_tasks()) if layout else []\n",
+        "dt_opts   = sorted(layout.get(return_type='id', target='datatype')) if layout else []\n",
+        "suf_opts  = sorted(layout.get(return_type='id', target='suffix')) if layout else []\n",
+        "\n",
+        "sub_w  = widgets.SelectMultiple(options=sub_opts, description='subject', rows=min(10, max(4, len(sub_opts))))\n",
+        "ses_w  = widgets.SelectMultiple(options=ses_opts, description='session', rows=min(6, max(3, len(ses_opts))))\n",
+        "task_w = widgets.SelectMultiple(options=task_opts, description='task', rows=min(6, max(3, len(task_opts))))\n",
+        "dt_w   = widgets.SelectMultiple(options=dt_opts, description='datatype', rows=min(6, max(3, len(dt_opts))))\n",
+        "suf_w  = widgets.SelectMultiple(options=suf_opts, description='suffix', rows=min(6, max(3, len(suf_opts))))\n",
+        "txt_w  = widgets.Text(value='', description='contains', placeholder='e.g. partlycloudy or T1w.json')\n",
+        "limit_w = widgets.IntSlider(value=200, min=50, max=2000, step=50, description='limit')\n",
+        "cols_w  = widgets.SelectMultiple(options=['subject','session','task','run','datatype','suffix'], value=('subject','task','datatype','suffix'), description='cols')\n",
+        "\n",
+        "def _search(subject, session, task, datatype, suffix, contains, limit, cols):\n",
+        "    paths = []\n",
+        "    ents = {}\n",
+        "    if subject: ents['subject'] = list(subject)\n",
+        "    if session: ents['session'] = list(session)\n",
+        "    if task:    ents['task']    = list(task)\n",
+        "    if datatype:ents['datatype']= list(datatype)\n",
+        "    if suffix:  ents['suffix']  = list(suffix)\n",
+        "    try:\n",
+        "        if layout:\n",
+        "            paths = layout.get(return_type='file', **ents)\n",
+        "        else:\n",
+        "            for p,_,fs in os.walk(base):\n",
+        "                for f in fs:\n",
+        "                    paths.append(os.path.join(p, f))\n",
+        "    except Exception as e:\n",
+        "        display(Markdown(f\"_Query error: {str(e)}_\"))\n",
+        "        paths = []\n",
+        "\n",
+        "    if contains:\n",
+        "        tokens = [t for t in re.split(r\"\\s+\", contains.strip()) if t]\n",
+        "        def ok(s):\n",
+        "            s = s.lower()\n",
+        "            return all(t.lower() in s for t in tokens)\n",
+        "        paths = [p for p in paths if ok(p)]\n",
+        "\n",
+        "    paths = sorted(set(paths))[:int(limit)]\n",
+        "    if not paths:\n",
+        "        display(Markdown('_No matches._'))\n",
+        "        return\n",
+        "\n",
+        "    rows = []\n",
+        "    for p in paths:\n",
+        "        rel = os.path.relpath(p, base)\n",
+        "        row = {'path': rel}\n",
+        "        if layout:\n",
+        "            e = layout.parse_file_entities(p)\n",
+        "            for k in ('subject','session','task','run','datatype','suffix'):\n",
+        "                if k in e: row[k] = e[k]\n",
+        "        rows.append(row)\n",
+        "    df = pd.DataFrame(rows)\n",
+        "    ordered = ['path'] + [c for c in cols if c in df.columns]\n",
+        "    df = df[ordered + [c for c in df.columns if c not in ordered]]\n",
+        "    display(df)\n",
+        "\n",
+        "ui = widgets.VBox([\n",
+        "    widgets.HBox([sub_w, ses_w, task_w]),\n",
+        "    widgets.HBox([dt_w, suf_w]),\n",
+        "    widgets.HBox([txt_w, limit_w, cols_w])\n",
+        "])\n",
+        "out = widgets.interactive_output(_search, {\n",
+        "    'subject': sub_w, 'session': ses_w, 'task': task_w, 'datatype': dt_w, 'suffix': suf_w,\n",
+        "    'contains': txt_w, 'limit': limit_w, 'cols': cols_w\n",
+        "})\n",
+        "display(ui, out)"
+      ]
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
