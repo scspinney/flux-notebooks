@@ -1,3 +1,17 @@
-.venv
-*.csv
-reports/
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter Book outputs (all generated)
+book/
+!book_templates/
+
+# VSCode / local
+.vscode/
+.venv/
