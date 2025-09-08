@@ -1,6 +1,17 @@
-.venv
-*.csv
-reports/
-src/flux_notebooks/__pycache__/
+# Python
+**/__pycache__/
 *.pyc
-*.egg*
+*.pyo
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter Book outputs (all generated)
+book/
+!book_templates/
+
+# VSCode / local
+.vscode/
+.venv/
