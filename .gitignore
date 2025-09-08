@@ -1,17 +1,21 @@
 # Python
-**/__pycache__/
-*.pyc
-*.pyo
-
-# Packaging
+__pycache__/
+*.py[cod]
 *.egg-info/
+.venv/
+
+# Jupyter / builds
+.ipynb_checkpoints/
+book/
+reports/
+*.ipynb
+
+# Tests / tools
+.pytest_cache/
+.mypy_cache/
+.coverage
 dist/
 build/
 
-# Jupyter Book outputs (all generated)
-book/
-!book_templates/
-
-# VSCode / local
-.vscode/
-.venv/
+# Demo data
+superdemo/
