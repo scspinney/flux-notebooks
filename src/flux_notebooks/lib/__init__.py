@@ -1,2 +1,2 @@
-from . import bids, mriqc, fs, common
-__all__ = ["bids", "mriqc", "fs", "common"]
+from . import bids, mriqc, freesurfer, common
+__all__ = ["bids", "mriqc", "freesurfer", "common"]

@@ -1,0 +1,4 @@
+# .jupytext.toml
+formats = "py:percent"
+cell_metadata_filter = "-all"
+notebook_metadata_filter = "kernelspec,widgets"
