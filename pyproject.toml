@@ -18,10 +18,13 @@ dependencies = [
   "myst-nb>=1.0",
   "ipywidgets>=8.1",  
   "plotly>=5.22",
+  "myst-nb",
+  "jupytext",
 ]
 
 [project.scripts]
 flux-notebooks = "flux_notebooks.cli:app"
+flux-report = "flux_notebooks.cli.report:main"
 flux-notebooks-super = "flux_notebooks.superbuilder:app"
 
 
