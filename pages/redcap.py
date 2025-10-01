@@ -162,6 +162,8 @@ layout = html.Div(
                                     options=[{"label": s, "value": s} for s in (COUNTS.index.tolist() if COUNTS is not None else ["Calgary","Montreal","Toronto"])],
                                     placeholder="All sites",
                                     multi=True,
+                                    className="flux-input",
+
                                 ),
                             ]
                         ),
@@ -173,6 +175,8 @@ layout = html.Div(
                                     options=[{"label": a, "value": a} for a in ["0-2","2-5","6-9","10-12","13-15","16-18"]],
                                     placeholder="All age groups",
                                     multi=True,
+                                    className="flux-input",
+
                                 ),
                             ]
                         ),
