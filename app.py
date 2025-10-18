@@ -3,8 +3,11 @@
 Flux Dashboards – unified entrypoint for all Dash pages.
 Now includes a robust MRIQC HTML rewriter and a modern top navigation bar.
 """
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-import os, re, mimetypes, logging
+
+import re, mimetypes, logging
 from pathlib import Path, PurePosixPath
 from flask import Response, send_file, send_from_directory, abort
 import dash
