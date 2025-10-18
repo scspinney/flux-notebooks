@@ -355,3 +355,29 @@ __all__ = [
     "_maybe_bids_layout",
     "_options",
 ]
+
+
+
+def is_preprocessed(sub_id: str, derivatives_root: Path) -> bool:
+    """
+    Check if the subject has final pipeline outputs (MRIQC, fMRIPrep, or FreeSurfer).
+    """
+    sub_id = sub_id.replace("sub-", "")
+    processed = False
+
+    # MRIQC
+    mriqc_path = derivatives_root / "mriqc" / f"sub-{sub_id}"
+    if any(mriqc_path.glob("**/*.html")) or any(mriqc_path.glob("**/*.json")):
+        processed = True
+
+    # fMRIPrep
+    fmriprep_path = derivatives_root / "fmriprep" / f"sub-{sub_id}"
+    if any(fmriprep_path.glob("**/*.html")) or any(fmriprep_path.glob("**/*confounds_timeseries.tsv")):
+        processed = True
+
+    # FreeSurfer
+    fs_path = derivatives_root / "freesurfer" / f"sub-{sub_id}"
+    if (fs_path / "stats").exists() and (fs_path / "surf").exists():
+        processed = True
+
+    return processed

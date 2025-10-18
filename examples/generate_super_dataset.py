@@ -1,35 +1,16 @@
 #!/usr/bin/env python3
-"""
-Create a demo neuroimaging superdataset with DataLad (pure Python API):
-
-<root>/
-  bids/                      (subdataset)
-    dataset_description.json
-    participants.tsv
-    sub-XX/ses-YY/anat/*.nii.gz (tiny gz placeholders)
-    sub-XX/ses-YY/func/*.nii.gz + sidecars
-  qa/mriqc/                  (subdataset)
-    group_T1w.html, group_bold.html, sub-XX_T1w.json
-  derivatives/freesurfer/    (subdataset)
-    sub-XX/surf/{lh.white,rh.white}, stats/aseg.stats
-  README.md
-
-This follows the DataLad docs flow:
-- Create superdataset
-- Create subdatasets from the superdataset with Dataset.create()
-- Write content
-- superds.save(..., recursive=True)
-
-Usage:
-  python examples/generate_super_dataset_datalad.py --root ./superdemo --n-sub 3 --n-ses 2
-"""
-
 from __future__ import annotations
-import json, gzip, random, datetime as dt
+import json, random, datetime as dt, shutil, re, sys, hashlib, os, stat
 from pathlib import Path
+import gzip
 import typer
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+
+# -------------------- helpers --------------------
+
+def _say(msg: str) -> None:
+    print(msg, flush=True)
 
 def _writetext(p: Path, s: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -40,6 +21,18 @@ def _writegz(p: Path, payload: str = "placeholder") -> None:
     with gzip.open(p, "wb") as f:
         f.write(payload.encode("utf-8"))
 
+def _safe_rmtree(path: Path) -> None:
+    """rm -rf that also fixes read-only annex files."""
+    def onerror(func, pth, exc_info):
+        try:
+            os.chmod(pth, stat.S_IWUSR | stat.S_IREAD)
+            func(pth)
+        except Exception as e:
+            _say(f"[WARN] Could not remove {pth}: {e}")
+    shutil.rmtree(path, onerror=onerror)
+
+# -------------------- BIDS tree --------------------
+
 def write_bids_tree(bids: Path, n_sub: int, n_ses: int) -> None:
     _writetext(
         bids / "dataset_description.json",
@@ -48,23 +41,22 @@ def write_bids_tree(bids: Path, n_sub: int, n_ses: int) -> None:
                 "Name": "Demo Superdataset",
                 "BIDSVersion": "1.9.0",
                 "DatasetType": "raw",
-                "GeneratedBy": [{"Name": "generator", "Version": "0.1"}],
+                "GeneratedBy": [{"Name": "generator", "Version": "3.1-enforce-copy"}],
             },
             indent=2,
         ),
     )
     rows = ["participant_id\tage\tsession_count"]
     for i in range(1, n_sub + 1):
-        rows.append(f"sub-{i:02d}\t{random.randint(8,17)}\t{n_ses}")
+        rows.append(f"sub-{i:03d}\t{random.randint(8,17)}\t{n_ses}")
     _writetext(bids / "participants.tsv", "\n".join(rows) + "\n")
 
     for i in range(1, n_sub + 1):
-        sub = f"sub-{i:02d}"
+        sub = f"sub-{i:03d}"
         for j in range(1, n_ses + 1):
             ses = f"ses-{j:02d}"
             anat = bids / sub / ses / "anat"
             func = bids / sub / ses / "func"
-            # Tiny “nii.gz” payloads (just gzipped text) to populate the tree
             _writegz(anat / f"{sub}_{ses}_T1w.nii.gz", "NIfTI placeholder")
             _writetext(
                 anat / f"{sub}_{ses}_T1w.json",
@@ -81,22 +73,82 @@ def write_bids_tree(bids: Path, n_sub: int, n_ses: int) -> None:
             )
             _writetext(func / f"{sub}_{ses}_task-{task}_events.tsv", "onset\tduration\ttrial_type\n")
 
-def write_mriqc_tree(mriqc: Path, n_sub: int) -> None:
-    _writetext(mriqc / "README.md", "# MRIQC (demo)\n\nGroup/subject placeholders.\n")
-    _writetext(mriqc / "group_T1w.html", "<html><body>group T1w QC (demo)</body></html>")
-    _writetext(mriqc / "group_bold.html", "<html><body>group BOLD QC (demo)</body></html>")
-    for i in range(1, min(n_sub, 3) + 1):
-        sub = f"sub-{i:02d}"
-        _writetext(mriqc / f"{sub}_T1w.json", json.dumps({"bids_name": sub, "cjv": round(random.uniform(0.7,1.1),3)}, indent=2))
+# -------------------- MRIQC: COPY ONLY TOP-LEVEL HTMLs --------------------
 
-def write_freesurfer_tree(fs: Path, n_sub: int) -> None:
-    _writetext(fs / "README", "Demo FreeSurfer derivatives (placeholder)\n")
+def precopy_mriqc_htmls(mriqc_dir: Path, n_sub: int, n_ses: int, example_data: Path) -> None:
+    _say(f"[INFO] Using real MRIQC example data from: {example_data}")
+    if not example_data.exists():
+        raise FileNotFoundError(f"Example MRIQC data not found at: {example_data}")
+
+    # demo group pages (also .html at depth 1)
+    _writetext(mriqc_dir / "README.md", "# MRIQC (demo)\n\nCopied and renamed from real example outputs.\n")
+    _writetext(mriqc_dir / "group_T1w.html", "<html><body><h2>Group T1w QC (demo)</h2></body></html>")
+    _writetext(mriqc_dir / "group_bold.html", "<html><body><h2>Group BOLD QC (demo)</h2></body></html>")
+
+    # exactly the six top-level HTMLs
+    src_htmls = sorted([p for p in example_data.iterdir() if p.suffix.lower() == ".html"])
+    _say(f"[DEBUG] Source HTMLs at example root: {len(src_htmls)}")
+    for p in src_htmls:
+        _say(f"        src: {p.name}")
+    if not src_htmls:
+        raise SystemExit("[FATAL] No .html files at example_data root — expected 6.")
+
+    # tokens from filename (e.g., sub-1723_ses-1a_*.html)
+    sample = src_htmls[0].name
+    m_sub = re.search(r"(sub-\d+)", sample)
+    m_ses = re.search(r"(ses-\d+[a-z])", sample)
+    src_sub_token = m_sub.group(1) if m_sub else "sub-000"
+    src_ses_token = m_ses.group(1) if m_ses else "ses-1a"
+    _say(f"[DEBUG] Renaming tokens: sub={src_sub_token!r}  ses={src_ses_token!r}")
+
+    copied = []
     for i in range(1, n_sub + 1):
-        sub = f"sub-{i:02d}"
-        (fs / sub / "surf").mkdir(parents=True, exist_ok=True)
-        (fs / sub / "surf" / "lh.white").write_bytes(b"")
-        (fs / sub / "surf" / "rh.white").write_bytes(b"")
-        _writetext(fs / sub / "stats" / "aseg.stats", "# demo aseg stats\n")
+        sub_new = f"sub-{i:03d}"
+        dest_dir = mriqc_dir / sub_new
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        for j in range(1, n_ses + 1):
+            ses_new = f"ses-{j}a"  # mirror 1a, 2a, …
+            for src in src_htmls:
+                new_name = src.name.replace(src_sub_token, sub_new).replace(src_ses_token, ses_new)
+                dst = dest_dir / new_name
+                # Write bytes (bypasses any oddities with copy flags)
+                dst.write_bytes(src.read_bytes())
+                # Patch identifiers inside HTML
+                try:
+                    txt = dst.read_text(errors="ignore")
+                    txt = txt.replace(src_sub_token, sub_new).replace(src_ses_token, ses_new)
+                    dst.write_text(txt, encoding="utf-8")
+                except Exception as e:
+                    _say(f"[WARN] Could not patch identifiers in {dst}: {e}")
+                _say(f"[COPY] {src.name} -> {dst.relative_to(mriqc_dir)}")
+                copied.append(dst)
+
+    # manifest & assert
+    manifest = mriqc_dir / "_COPIED_HTMLS.txt"
+    _writetext(manifest, "HTML files copied:\n" + "\n".join(str(p.relative_to(mriqc_dir)) for p in copied) + "\n")
+    _say(f"[INFO] Manifest: {manifest}")
+
+    found = list(mriqc_dir.rglob("*.html"))
+    _say(f"[CHECK] HTMLs present in qc/mriqc BEFORE DataLad: {len(found)}")
+    for p in sorted(found):
+        rel = p.relative_to(mriqc_dir)
+        if len(rel.parts) <= 2:
+            _say(f"   [FOUND] {rel}")
+    if not found:
+        raise SystemExit("[FATAL] No HTMLs in qc/mriqc before DataLad — stopping.")
+
+# -------------------- fMRIPrep dummy tree --------------------
+
+def write_fmriprep_tree(fs: Path, n_sub: int) -> None:
+    _writetext(fs / "README", "Demo fMRIPrep derivatives (placeholder)\n")
+    for i in range(1, n_sub + 1):
+        sub = f"sub-{i:03d}"
+        (fs / sub / "anat").mkdir(parents=True, exist_ok=True)
+        (fs / sub / "func").mkdir(parents=True, exist_ok=True)
+        (fs / sub / "anat" / f"{sub}_desc-preproc_T1w.nii.gz").write_bytes(b"")
+        (fs / sub / "func" / f"{sub}_task-rest_desc-preproc_bold.nii.gz").write_bytes(b"")
+
+# -------------------- Top-level --------------------
 
 def write_top_readme(root: Path) -> None:
     ts = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -106,52 +158,68 @@ def write_top_readme(root: Path) -> None:
 
 Generated {ts}.
 
-- `bids/` — BIDS-like raw placeholders
-- `qa/mriqc/` — MRIQC demo artifacts
-- `derivatives/freesurfer/` — FreeSurfer demo outputs
+- `bids/` — BIDS-like raw placeholders  
+- `qc/mriqc/` — MRIQC example HTMLs (copied + renamed per subject/session)  
+- `derivatives/fmriprep/` — fMRIPrep demo outputs
 
-Synthetic demo for pipelines & docs.
-""",
+All MRIQC assets stored as normal files (non-annexed) for direct dashboard access.
+"""
     )
+
+# -------------------- main --------------------
 
 @app.command()
 def main(
     root: Path = typer.Option(..., "--root", help="Where to create the superdataset"),
+    example_data: Path = typer.Option("data/mriqc_reports_example", "--example-data", help="Path to example MRIQC data"),
     n_sub: int = typer.Option(3, "--n-sub", min=1),
     n_ses: int = typer.Option(1, "--n-ses", min=1),
     force_clean: bool = typer.Option(False, help="rm -rf ROOT first"),
 ):
-    # Import here so the script fails clearly if DataLad is missing.
-    from datalad.api import Dataset
+    # Identity banner (helps verify you are running this exact file)
+    here = Path(__file__).resolve()
+    sha = hashlib.sha256(here.read_bytes()).hexdigest()
+    _say(f"[START] Running: {here}")
+    _say(f"[START] SHA256:  {sha}")
 
     root = root.resolve()
     if force_clean and root.exists():
-        import shutil
-        shutil.rmtree(root)
-    root.mkdir(parents=True, exist_ok=True)
+        _say(f"[CLEAN] Removing previous tree: {root}")
+        _safe_rmtree(root)
 
-    # 1) Superdataset (docs pattern)
-    superds = Dataset(root).create()  # equivalent to `datalad create <root>`
+    # Build plain directories and copy HTMLs BEFORE any DataLad
+    (root / "bids").mkdir(parents=True, exist_ok=True)
+    (root / "qc" / "mriqc").mkdir(parents=True, exist_ok=True)
+    (root / "derivatives" / "fmriprep").mkdir(parents=True, exist_ok=True)
 
-    # 2) Subdatasets from the superdataset (docs: `datalad create -d . sub1`)
-    bids_ds  = superds.create(path="bids")
-    mriqc_ds = superds.create(path="qa/mriqc")
-    fs_ds    = superds.create(path="derivatives/freesurfer")
-
-    # 3) Write content into the *working trees* of each subdataset
-    write_bids_tree(Path(bids_ds.path), n_sub, n_ses)
-    write_mriqc_tree(Path(mriqc_ds.path), n_sub)
-    write_freesurfer_tree(Path(fs_ds.path), n_sub)
+    write_bids_tree(root / "bids", n_sub, n_ses)
+    precopy_mriqc_htmls(root / "qc" / "mriqc", n_sub, n_ses, example_data)
+    write_fmriprep_tree(root / "derivatives" / "fmriprep", n_sub)
     write_top_readme(root)
 
-    # 4) Single recursive save up the tree (docs demonstrate this behavior)
-    superds.save(message="Initialize demo superdataset with subdatasets and content", recursive=True)
+    # Assert again before DataLad
+    pre_html_count = sum(1 for _ in (root / "qc" / "mriqc").rglob("*.html"))
+    _say(f"[ASSERT] On-disk HTMLs before DataLad init: {pre_html_count}")
+    if pre_html_count == 0:
+        raise SystemExit("[FATAL] No HTMLs on disk in qc/mriqc — aborting before DataLad.")
 
-    print(f"Superdataset ready at: {root}")
-    print("Try:")
-    print(f"  cd {root}")
-    print("  datalad subdatasets")
-    print("  datalad diff -r --report-untracked all")
+    # Now wrap with DataLad (qc/mriqc as plain Git)
+    from datalad.api import Dataset
+    superds = Dataset(root).create()
+    superds.create(path="bids")
+    superds.create(path="qc/mriqc", annex=False)
+    superds.create(path="derivatives/fmriprep")
+    superds.save(message="Initialize demo superdataset with MRIQC HTMLs (precopied)", recursive=True)
+
+    # Verify after save
+    post_html_count = sum(1 for _ in (root / "qc" / "mriqc").rglob("*.html"))
+    _say(f"[CHECK] HTMLs present in qc/mriqc after save: {post_html_count}")
+    if post_html_count == 0:
+        _say("[FATAL] HTMLs disappeared after save — check .gitattributes/annex settings.")
+        sys.exit(3)
+
+    _say(f"\nSuperdataset ready at: {root}")
+    _say(f"→ MRIQC example data imported from: {example_data}")
 
 if __name__ == "__main__":
     app()
