@@ -84,10 +84,11 @@ def summarize_targets(redcap_csv: Path):
 # ------------------------------------------------------------
 # Modality summarizer per site using BIDS + derivatives
 # ------------------------------------------------------------
-
 def summarize_modalities(bids_root: Path, derivatives_root: Path):
     """
-    Summarize available MRI modalities and preprocessing completion per site.
+    Summarize available MRI modalities per site.
+    Emits exact names for tasks: 'task-<name>'.
+    Availability % = (# subjects in site with at least one file of that modality) / (total subjects in site).
     """
     import os
     os.environ["BIDS_LAYOUT_FOLLOW_SYMLINKS"] = "1"
@@ -100,78 +101,262 @@ def summarize_modalities(bids_root: Path, derivatives_root: Path):
     if "site_name" not in df.columns or "participant_id" not in df.columns:
         raise ValueError("participants.tsv must include 'site_name' and 'participant_id' columns")
 
+    # Subjects per site (strip 'sub-' if present)
     sites = df["site_name"].dropna().unique().tolist()
     site_subjects = {
         site: [s.replace("sub-", "") for s in df.loc[df["site_name"] == site, "participant_id"].tolist()]
         for site in sites
     }
 
-    # Build layout
-    layout = BIDSLayout(bids_root, validate=False, derivatives=False, absolute_paths=True)
-    deriv_paths = [p for p in derivatives_root.glob("*") if p.is_dir()]
+    # One raw layout for the entire dataset
+    layout = BIDSLayout(bids_root, validate=False, derivatives=False)
 
-    base_modalities = ["T1w", "T2w", "dwi"]
-    task_names = sorted(set(
-        t.entities.get("task") for t in layout.get(datatype="func", suffix="bold")
-        if "task" in t.entities
-    ))
+    # Use the correct *BIDS* suffix case for queries
+    BASE_SUFFIX = {
+        "T1W": "T1w",
+        "T2W": "T2w",
+        "DWI": "dwi",
+    }
+
+    # Discover tasks exactly as they appear in files
+    task_names = sorted(
+        set(
+            ent.entities.get("task")
+            for ent in layout.get(datatype="func", suffix="bold")
+            if "task" in ent.entities
+        )
+    )
+    # Labels we will emit for tasks
+    task_labels = [f"task-{t}" for t in task_names]
 
     summaries = {}
-    print(f"[INFO] Found tasks: {task_names}")
 
     for site, subjects in site_subjects.items():
-        mod_counts = {m: 0 for m in base_modalities + task_names}
-        preproc_counts = {m: 0 for m in base_modalities + task_names}
+        n_site = max(len(subjects), 1)  # avoid /0
 
+        # Initialize counts per *display* label
+        available_counts = {k: 0 for k in BASE_SUFFIX.keys()}
+        for lbl in task_labels:
+            available_counts[lbl] = 0
+
+        # Count availability per subject (once per subject per modality)
         for subj in subjects:
-            for mod in base_modalities:
-                files = layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"])
-                if files:
-                    mod_counts[mod] += 1
-            for task in task_names:
-                files = layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"])
-                if files:
-                    mod_counts[task] += 1
+            # Struct/DWI
+            for disp, suffix in BASE_SUFFIX.items():
+                has = bool(layout.get(subject=subj, suffix=suffix, extension=[".nii", ".nii.gz"]))
+                if has:
+                    available_counts[disp] += 1
 
-        print(f"[DEBUG] {site}: {mod_counts}")
+            # Tasks (emit exact label)
+            for t in task_names:
+                has = bool(layout.get(subject=subj, task=t, suffix="bold", extension=[".nii", ".nii.gz"]))
+                if has:
+                    available_counts[f"task-{t}"] += 1
 
-        for deriv in deriv_paths:
-            try:
-                deriv_layout = BIDSLayout(deriv, validate=False, derivatives=True)
-                deriv_subjects = deriv_layout.get_subjects()
-                for subj in subjects:
-                    if subj not in deriv_subjects:
-                        continue
-                    for mod in base_modalities:
-                        if deriv_layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"]):
-                            preproc_counts[mod] += 1
-                    for task in task_names:
-                        if deriv_layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"]):
-                            preproc_counts[task] += 1
-            except Exception as e:
-                print(f"[WARN] skipping {deriv}: {e}")
-                continue
-
-        summary = []
-        for mod in base_modalities + task_names:
-            available = mod_counts.get(mod, 0)
-            processed = preproc_counts.get(mod, 0)
-            pct = round(100 * processed / available, 1) if available > 0 else 0
-            display_name = (
-                mod.upper()
-                if mod in base_modalities
-                else f"rsfMRI: {mod.replace('_', ' ').title()}"
-            )
-            summary.append({
-                "name": display_name,
-                "available": available,
-                "processed": processed,
+        # Build summary list
+        site_summary = []
+        for disp in list(BASE_SUFFIX.keys()) + task_labels:
+            avail_subjs = available_counts.get(disp, 0)
+            pct = round(100.0 * avail_subjs / n_site, 1)
+            site_summary.append({
+                "name": disp,          # exact labels for tasks, upper for base
+                "available": avail_subjs,
+                "processed": 0,        # not using derivatives here
                 "percent": pct,
             })
 
-        summaries[site] = {"modalities": summary}
+        summaries[site] = {"modalities": site_summary}
 
     return summaries
+
+
+
+# def summarize_modalities(bids_root: Path, derivatives_root: Path):
+#     """
+#     Summarize available MRI modalities and preprocessing completion per site.
+#     Task labels are emitted EXACTLY as 'task-<taskname>' (e.g., 'task-partlycloudy').
+#     """
+#     import os
+#     os.environ["BIDS_LAYOUT_FOLLOW_SYMLINKS"] = "1"
+
+#     participants_file = bids_root / "participants.tsv"
+#     if not participants_file.exists():
+#         raise FileNotFoundError(f"participants.tsv not found in {bids_root}")
+
+#     df = pd.read_csv(participants_file, sep="\t")
+#     if "site_name" not in df.columns or "participant_id" not in df.columns:
+#         raise ValueError("participants.tsv must include 'site_name' and 'participant_id' columns")
+
+#     # Subjects per site
+#     sites = df["site_name"].dropna().unique().tolist()
+#     site_subjects = {
+#         site: [s.replace("sub-", "") for s in df.loc[df["site_name"] == site, "participant_id"].tolist()]
+#         for site in sites
+#     }
+
+#     # Layouts
+#     layout = BIDSLayout(bids_root, validate=False, derivatives=False)
+#     deriv_paths = [p for p in derivatives_root.glob("*") if p.is_dir()]
+
+#     # Base modalities (struct/DWI)
+#     base_modalities = ["t1w", "t2w", "dwi"]
+
+#     # Discover tasks exactly as they appear in the files
+#     task_names = sorted(
+#         set(
+#             t.entities.get("task")
+#             for t in layout.get(datatype="func", suffix="bold")
+#             if "task" in t.entities
+#         )
+#     )
+
+#     summaries = {}
+
+#     for site, subjects in site_subjects.items():
+#         # Counts keyed by exact display label:
+#         #   - 'T1W','T2W','DWI'
+#         #   - 'task-<taskname>'
+#         mod_counts = {m.upper(): 0 for m in base_modalities}
+#         preproc_counts = {m.upper(): 0 for m in base_modalities}
+#         for task in task_names:
+#             mod_counts[f"task-{task}"] = 0
+#             preproc_counts[f"task-{task}"] = 0
+
+#         # Count raw data
+#         for subj in subjects:
+#             # Struct/DWI
+#             for mod in base_modalities:
+#                 if layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"]):
+#                     mod_counts[mod.upper()] += 1
+#             # Tasks
+#             for task in task_names:
+#                 if layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"]):
+#                     mod_counts[f"task-{task}"] += 1
+
+#         # Count derivatives (processed)
+#         for deriv in deriv_paths:
+#             try:
+#                 deriv_layout = BIDSLayout(deriv, validate=False, derivatives=True)
+#                 deriv_subjects = set(deriv_layout.get_subjects())
+#                 for subj in subjects:
+#                     if subj not in deriv_subjects:
+#                         continue
+#                     for mod in base_modalities:
+#                         if deriv_layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"]):
+#                             preproc_counts[mod.upper()] += 1
+#                     for task in task_names:
+#                         if deriv_layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"]):
+#                             preproc_counts[f"task-{task}"] += 1
+#             except Exception:
+#                 continue
+
+#         # Assemble per-site summary with exact names
+#         summary = []
+#         for name in list(mod_counts.keys()):
+#             available = mod_counts[name]
+#             processed = preproc_counts[name]
+#             pct = round(100 * processed / available, 1) if available > 0 else 0
+#             summary.append(
+#                 {"name": name, "available": available, "processed": processed, "percent": pct}
+#             )
+
+#         summaries[site] = {"modalities": summary}
+
+#     return summaries
+
+
+
+
+
+
+
+# def summarize_modalities(bids_root: Path, derivatives_root: Path):
+#     """
+#     Summarize available MRI modalities and preprocessing completion per site.
+#     """
+#     import os
+#     os.environ["BIDS_LAYOUT_FOLLOW_SYMLINKS"] = "1"
+
+#     participants_file = bids_root / "participants.tsv"
+#     if not participants_file.exists():
+#         raise FileNotFoundError(f"participants.tsv not found in {bids_root}")
+
+#     df = pd.read_csv(participants_file, sep="\t")
+#     if "site_name" not in df.columns or "participant_id" not in df.columns:
+#         raise ValueError("participants.tsv must include 'site_name' and 'participant_id' columns")
+
+#     sites = df["site_name"].dropna().unique().tolist()
+#     site_subjects = {
+#         site: [s.replace("sub-", "") for s in df.loc[df["site_name"] == site, "participant_id"].tolist()]
+#         for site in sites
+#     }
+
+#     # Build layout
+#     layout = BIDSLayout(bids_root, validate=False, derivatives=False, absolute_paths=True)
+#     deriv_paths = [p for p in derivatives_root.glob("*") if p.is_dir()]
+
+#     base_modalities = ["T1w", "T2w", "dwi"]
+#     task_names = sorted(set(
+#         t.entities.get("task") for t in layout.get(datatype="func", suffix="bold")
+#         if "task" in t.entities
+#     ))
+
+#     summaries = {}
+#     print(f"[INFO] Found tasks: {task_names}")
+
+#     for site, subjects in site_subjects.items():
+#         mod_counts = {m: 0 for m in base_modalities + task_names}
+#         preproc_counts = {m: 0 for m in base_modalities + task_names}
+
+#         for subj in subjects:
+#             for mod in base_modalities:
+#                 files = layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"])
+#                 if files:
+#                     mod_counts[mod] += 1
+#             for task in task_names:
+#                 files = layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"])
+#                 if files:
+#                     mod_counts[task] += 1
+
+#         print(f"[DEBUG] {site}: {mod_counts}")
+
+#         for deriv in deriv_paths:
+#             try:
+#                 deriv_layout = BIDSLayout(deriv, validate=False, derivatives=True)
+#                 deriv_subjects = deriv_layout.get_subjects()
+#                 for subj in subjects:
+#                     if subj not in deriv_subjects:
+#                         continue
+#                     for mod in base_modalities:
+#                         if deriv_layout.get(subject=subj, suffix=mod, extension=[".nii", ".nii.gz"]):
+#                             preproc_counts[mod] += 1
+#                     for task in task_names:
+#                         if deriv_layout.get(subject=subj, task=task, suffix="bold", extension=[".nii", ".nii.gz"]):
+#                             preproc_counts[task] += 1
+#             except Exception as e:
+#                 print(f"[WARN] skipping {deriv}: {e}")
+#                 continue
+
+#         summary = []
+#         for mod in base_modalities + task_names:
+#             available = mod_counts.get(mod, 0)
+#             processed = preproc_counts.get(mod, 0)
+#             pct = round(100 * processed / available, 1) if available > 0 else 0
+#             display_name = (
+#                 mod.upper()
+#                 if mod in base_modalities
+#                 else f"rsfMRI: {mod.replace('_', ' ').title()}"
+#             )
+#             summary.append({
+#                 "name": display_name,
+#                 "available": available,
+#                 "processed": processed,
+#                 "percent": pct,
+#             })
+
+#         summaries[site] = {"modalities": summary}
+
+#     return summaries
 
 
 

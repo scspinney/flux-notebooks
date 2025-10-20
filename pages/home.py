@@ -331,33 +331,90 @@ def make_timepoint_row(timepoint_name, summary):
 #         ],
 #     )
 
+# def make_modality_summary(mod_data, site_name=None):
+#     """Compact modality coverage summary per site (no bars, just percentages)."""
+#     site_color = SITE_COLORS.get(site_name, "#444")
+
+#     # Expected modality order / labels
+#     modality_labels = ["T1W", "T2W", "rsfMRI: Partly Cloudy", "rsfMRI: LaLuna", "DWI"]
+
+#     # Build quick lookup {name: percent}
+#     percents = {}
+#     for m in mod_data.get("modalities", []):
+#         name = m["name"].upper()
+#         p = m.get("percent", 0)
+#         if "BOLD" in name or "RSFMRI" in name:
+#             # will be split below if detailed keys exist
+#             percents["BOLD"] = p
+#         else:
+#             percents[name] = p
+
+#     # Split BOLD coverage into the two paradigms if possible
+#     if "BOLD_PARTLYCLOUDY" in percents:
+#         percents["RSFMRI: PARTLY CLOUDY"] = percents.pop("BOLD_PARTLYCLOUDY")
+#     if "BOLD_LALUNA" in percents:
+#         percents["RSFMRI: LALUNA"] = percents.pop("BOLD_LALUNA")
+
+#     rows = []
+#     for label in modality_labels:
+#         val = percents.get(label.upper(), 0)
+#         color = site_color if val >= 80 else "#888"
+#         rows.append(
+#             html.Div(
+#                 [
+#                     html.Span(label, style={"fontWeight": "600"}),
+#                     html.Span(f"{val:.1f}%", style={"float": "right", "color": color}),
+#                 ],
+#                 style={
+#                     "marginBottom": "6px",
+#                     "fontSize": "15px",
+#                     "color": "#333" if val > 0 else "#999",
+#                 },
+#             )
+#         )
+
+#     return html.Div(
+#         className=f"glass-card card-fade {site_name.lower()}-hover",
+#         style={
+#             "padding": "20px 25px",
+#             "borderRadius": "10px",
+#             "minWidth": "260px",
+#             "maxWidth": "300px",
+#             "textAlign": "left",
+#         },
+#         children=[
+#             html.Div(
+#                 [
+#                     html.H4(
+#                         site_name,
+#                         style={
+#                             "textAlign": "center",
+#                             "marginBottom": "12px",
+#                             "color": site_color,
+#                             "fontWeight": "600",
+#                         },
+#                     ),
+#                     html.Div(className="site-line", style={"backgroundColor": site_color}),
+#                 ]
+#             ),
+#             html.Div(rows),
+#         ],
+#     )
+
+
 def make_modality_summary(mod_data, site_name=None):
-    """Compact modality coverage summary per site (no bars, just percentages)."""
+    """Compact modality coverage summary per site using exact modality names."""
     site_color = SITE_COLORS.get(site_name, "#444")
 
-    # Expected modality order / labels
-    modality_labels = ["T1W", "T2W", "rsfMRI: Partly Cloudy", "rsfMRI: LaLuna", "DWI"]
+    # Use exact labels (match what summarize_modalities emits)
+    modality_labels = ["T1W", "T2W", "task-partlycloudy", "task-laluna", "DWI"]
 
-    # Build quick lookup {name: percent}
-    percents = {}
-    for m in mod_data.get("modalities", []):
-        name = m["name"].upper()
-        p = m.get("percent", 0)
-        if "BOLD" in name or "RSFMRI" in name:
-            # will be split below if detailed keys exist
-            percents["BOLD"] = p
-        else:
-            percents[name] = p
-
-    # Split BOLD coverage into the two paradigms if possible
-    if "BOLD_PARTLYCLOUDY" in percents:
-        percents["RSFMRI: PARTLY CLOUDY"] = percents.pop("BOLD_PARTLYCLOUDY")
-    if "BOLD_LALUNA" in percents:
-        percents["RSFMRI: LALUNA"] = percents.pop("BOLD_LALUNA")
+    # Quick lookup {exact name: percent}
+    percents = {m["name"]: m.get("percent", 0) for m in mod_data.get("modalities", [])}
 
     rows = []
     for label in modality_labels:
-        val = percents.get(label.upper(), 0)
+        val = percents.get(label, 0)
         color = site_color if val >= 80 else "#888"
         rows.append(
             html.Div(
@@ -375,13 +432,16 @@ def make_modality_summary(mod_data, site_name=None):
 
     return html.Div(
         className=f"glass-card card-fade {site_name.lower()}-hover",
-        style={
-            "padding": "20px 25px",
-            "borderRadius": "10px",
-            "minWidth": "260px",
-            "maxWidth": "300px",
-            "textAlign": "left",
-        },
+            style={
+                "padding": "35px 45px",          # more breathing room inside
+                "borderRadius": "16px",          # softer corners
+                "minWidth": "380px",             # wider card
+                "maxWidth": "420px",             # let it breathe
+                "minHeight": "260px",            # taller card
+                "textAlign": "left",
+                "boxShadow": "0 4px 16px rgba(0,0,0,0.12)",  # more depth
+                "background": "linear-gradient(135deg, #ffffff 0%, #f7f7f7 100%)",
+            },
         children=[
             html.Div(
                 [
@@ -400,6 +460,7 @@ def make_modality_summary(mod_data, site_name=None):
             html.Div(rows),
         ],
     )
+
 
 
 def stat_card(title, value):
@@ -503,31 +564,31 @@ def layout():
                 "A professional overview of dataset metrics and recruitment progress.",
                 style={"marginBottom": "25px"},
             ),
-            html.Div(
-                className="glass-card card-fade",
-                style={
-                    "margin": "20px auto",
-                    "padding": "25px",
-                    "maxWidth": "900px",
-                    "borderRadius": "12px",
-                    "textAlign": "left",
-                    "background": "linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)",
-                    "boxShadow": "0 3px 10px rgba(0,0,0,0.08)",
-                },
-                children=[
-                    html.H4("Quick Study Insights", style={"marginBottom": "10px", "fontWeight": "600"}),
-                    html.Ul(
-                        style={"fontSize": "15px", "color": "#333", "lineHeight": "1.7"},
-                        children=[
-                            html.Li(f"Total recruitment: {total_obs}/{total_tgt} ({(total_obs/total_tgt*100):.1f}%) of overall target."),
-                            html.Li(f"Highest recruitment site: {max(summary.get('sites', {}), key=lambda k: summary['sites'][k]['observed'])}"),
-                            html.Li("Follow-up participation is low — longitudinal collection not yet underway."),
-                            html.Li("Data completeness >90% across baseline demographics."),
-                            html.Li("MRI acquisition progressing smoothly; BOLD modality nearing full coverage."),
-                        ],
-                    ),
-                ],
-            ),
+            # html.Div(
+            #     className="glass-card card-fade",
+            #     style={
+            #         "margin": "20px auto",
+            #         "padding": "25px",
+            #         "maxWidth": "900px",
+            #         "borderRadius": "12px",
+            #         "textAlign": "left",
+            #         "background": "linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%)",
+            #         "boxShadow": "0 3px 10px rgba(0,0,0,0.08)",
+            #     },
+            #     children=[
+            #         html.H4("Quick Study Insights", style={"marginBottom": "10px", "fontWeight": "600"}),
+            #         html.Ul(
+            #             style={"fontSize": "15px", "color": "#333", "lineHeight": "1.7"},
+            #             children=[
+            #                 html.Li(f"Total recruitment: {total_obs}/{total_tgt} ({(total_obs/total_tgt*100):.1f}%) of overall target."),
+            #                 html.Li(f"Highest recruitment site: {max(summary.get('sites', {}), key=lambda k: summary['sites'][k]['observed'])}"),
+            #                 html.Li("Follow-up participation is low — longitudinal collection not yet underway."),
+            #                 html.Li("Data completeness >90% across baseline demographics."),
+            #                 html.Li("MRI acquisition progressing smoothly; BOLD modality nearing full coverage."),
+            #             ],
+            #         ),
+            #     ],
+            # ),
 
             # --- Tabbed donut section ----------------------------------------
             html.Div(
@@ -542,7 +603,7 @@ def layout():
             html.Div(
                 style={"marginTop": "50px", "textAlign": "center"},
                 children=[
-                    html.H3("Modalities Breakdown by Site", style={"marginBottom": "20px"}),
+                    html.H3("Imaging Modality Coverage by Site", style={"marginBottom": "20px"}),
                     html.Div(
                         style={
                             "display": "flex",

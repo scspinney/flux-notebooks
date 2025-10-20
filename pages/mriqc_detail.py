@@ -9,11 +9,13 @@ from flux_notebooks.config import Settings
 S = Settings.from_env()
 BIDS_ROOT = os.path.join(S.dataset_root, "bids")
 
-dash.register_page(
-    __name__,
-    path_template="/mriqc-detail/<subject_id>",
-    name="MRIQC Detail",
-)
+# dash.register_page(
+#     __name__,
+#     path_template="/mriqc-detail/<subject_id>",
+#     name="MRIQC Detail",
+# )
+
+dash.register_page(__name__, path_template="/mriqc-detail/<subject_id>", name="MRIQC Detail", order=None, include_in_nav=False)
 
 
 def _find_mriqc_htmls(subject_id):
