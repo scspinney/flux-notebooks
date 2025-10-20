@@ -1,207 +1,235 @@
-# pages/bids.py
-import os
-from pathlib import Path
-
 import dash
-from dash import html, dcc, dash_table
-import plotly.express as px
+from dash import html, dcc
+from pathlib import Path
+import os
+import json
 import pandas as pd
-
-from flux_notebooks.bids.summarize_bids import summarize_bids
 
 dash.register_page(__name__, path="/bids", name="BIDS Summary")
 
-# ── Locate dataset root robustly ─────────────────────────────────────────────
-DATASET_ROOT = Path(os.environ.get("FLUX_DATASET_ROOT", "superdemo_real")).resolve()
+dataset_root = Path(os.environ.get("FLUX_DATASET_ROOT", "superdemo_real")).resolve()
 
-# Prefer nested /bids if it exists
-if (DATASET_ROOT / "bids" / "dataset_description.json").exists():
-    BIDS_ROOT = DATASET_ROOT / "bids"
-elif (DATASET_ROOT / "dataset_description.json").exists():
-    BIDS_ROOT = DATASET_ROOT
-else:
-    print(f"[WARN] No BIDS dataset found under {DATASET_ROOT}")
-    BIDS_ROOT = None
+# ---------------------------------------------------------------------
+# Helper: recursively build directory tree as Dash components
+# ---------------------------------------------------------------------
+# def render_dir_tree(path: Path, level=0):
+#     """Recursively render a collapsible tree structure from a path."""
+#     if not path.exists():
+#         return html.Div(f"⚠️ Path not found: {path}", style={"color": "red"})
 
-# ── Summarize dataset safely ────────────────────────────────────────────────
-if BIDS_ROOT and BIDS_ROOT.exists():
-    print(f"[BIDS] Using root: {BIDS_ROOT}")
-    SUMMARY = summarize_bids(BIDS_ROOT)
-else:
-    SUMMARY = {
-        "avail": pd.DataFrame(),
-        "func_counts": pd.DataFrame(),
-        "tr_by_task": pd.DataFrame(),
-    }
+#     # Visual indentation
+#     indent = 20 * level
 
-# Coerce distinct_TRs column for display
-if SUMMARY.get("tr_by_task") is not None and not SUMMARY["tr_by_task"].empty:
-    tr_df = SUMMARY["tr_by_task"].copy()
-    if "distinct_TRs" in tr_df.columns:
-        tr_df["distinct_TRs"] = tr_df["distinct_TRs"].astype(str)
-    SUMMARY["tr_by_task"] = tr_df
+#     # Sort: directories first
+#     #entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+#     # Skip hidden files and directories (dotfiles)
+#     entries = sorted(
+#         [p for p in path.iterdir() if not p.name.startswith(".")],
+#         key=lambda p: (not p.is_dir(), p.name.lower())
+#     )
+
+#     children = []
+
+#     for entry in entries:
+#         icon = "📁" if entry.is_dir() else "📄"
+#         color = "#2563eb" if entry.is_dir() else "#555"
+#         hover_bg = "rgba(37,99,235,0.05)" if entry.is_dir() else "transparent"
+
+#         style = {
+#             "marginLeft": f"{indent}px",
+#             "fontFamily": "Menlo, monospace",
+#             "cursor": "pointer" if entry.is_dir() else "default",
+#             "padding": "4px 6px",
+#             "borderRadius": "6px",
+#             "transition": "all 0.15s ease-in-out",
+#         }
+
+#         # Directory node (expandable)
+#         if entry.is_dir():
+#             children.append(
+#                 html.Details(
+#                     open=False,
+#                     style={"marginBottom": "2px"},
+#                     children=[
+#                         html.Summary(
+#                             [
+#                                 html.Span(icon + " ", style={"color": color}),
+#                                 html.Span(entry.name, style={"color": color, "fontWeight": "600"}),
+#                             ],
+#                             style=style,
+#                         ),
+#                         html.Div(render_dir_tree(entry, level + 1)),
+#                     ],
+#                 )
+#             )
+#         else:
+#             children.append(
+#                 html.Div(
+#                     [html.Span(icon + " ", style={"color": "#aaa"}), html.Span(entry.name)],
+#                     style={**style, "color": "#444", "paddingLeft": "6px"},
+#                 )
+#             )
+#     return children
 
 
-# ── UI helpers ───────────────────────────────────────────────────────────────
-def card(children, style_extra=None):
-    base = {
-        "background": "rgba(255,255,255,0.04)",  # looks good on dark themes
-        "padding": "14px",
-        "borderRadius": "12px",
-        "border": "1px solid rgba(255,255,255,0.08)",
-    }
-    if style_extra:
-        base.update(style_extra)
-    return html.Div(children, style=base)
 
+def render_dir_tree(path: Path, level=0):
+    """Recursively render a collapsible tree structure from a path with previews for JSON/TSV files."""
+    if not path.exists():
+        return html.Div(f"⚠️ Path not found: {path}", style={"color": "red"})
 
-grid2 = {"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px"}
-grid1 = {"display": "grid", "gridTemplateColumns": "1fr", "gap": "16px"}
-
-
-def make_table(title: str, df: pd.DataFrame | None, page_size: int = 10):
-    if df is None or df.empty:
-        return card(html.Div(f"No data for {title}", style={"color": "#9ca3af"}))
-    return card(
-        dash_table.DataTable(
-            data=df.to_dict("records"),
-            columns=[{"name": c, "id": c} for c in df.columns],
-            page_size=page_size,
-            style_table={"overflowX": "auto"},
-            style_header={
-                "backgroundColor": "rgba(255,255,255,0.06)",
-                "fontWeight": "700",
-                "border": "none",
-            },
-            style_cell={
-                "backgroundColor": "rgba(0,0,0,0)",
-                "color": "#e5e7eb",
-                "borderBottom": "1px solid rgba(255,255,255,0.06)",
-                "padding": "8px",
-                "fontSize": "14px",
-            },
-        )
+    indent = 20 * level
+    entries = sorted(
+        [p for p in path.iterdir() if not p.name.startswith(".")],
+        key=lambda p: (not p.is_dir(), p.name.lower())
     )
 
+    children = []
 
-# ── Plot helpers (robust to different shapes) ────────────────────────────────
-def _fig_availability(avail: pd.DataFrame | None):
-    """Stacked bar of available files per datatype for each subject."""
-    if avail is None or avail.empty:
-        return None
-    df = avail.reset_index().rename(columns={"index": "sub"})  # ensure 'sub'
-    long = df.melt(id_vars=["sub"], var_name="datatype", value_name="count")
-    fig = px.bar(long, x="sub", y="count", color="datatype", barmode="stack")
-    fig.update_layout(
-        title="Availability by datatype",
-        margin=dict(l=10, r=10, t=40, b=10),
-        height=420,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        legend_title_text="datatype",
-    )
-    return fig
+    for entry in entries:
+        icon = "📁" if entry.is_dir() else "📄"
+        color = "#2563eb" if entry.is_dir() else "#555"
+        style = {
+            "marginLeft": f"{indent}px",
+            "fontFamily": "Menlo, monospace",
+            "cursor": "pointer" if entry.is_dir() else "default",
+            "padding": "4px 6px",
+            "borderRadius": "6px",
+            "transition": "all 0.15s ease-in-out",
+        }
 
-
-def _as_task_counts(obj: pd.DataFrame | pd.Series | None) -> pd.DataFrame | None:
-    """Normalize 'runs per task' into a two-column DataFrame: (task, count)."""
-    if obj is None:
-        return None
-
-    if isinstance(obj, pd.Series):
-        d = obj.reset_index()
-        if d.shape[1] == 2:
-            d.columns = ["task", "count"]
-        else:
-            d = d.rename(columns={d.columns[0]: "task"})
-            d["count"] = obj.values
-        return d[["task", "count"]]
-
-    if not isinstance(obj, pd.DataFrame) or obj.empty:
-        return None
-
-    d = obj.copy()
-
-    if "task" not in d.columns:
-        d = d.reset_index()
-        if "task" not in d.columns:
-            d = d.rename(columns={d.columns[0]: "task"})
-
-    if "count" not in d.columns:
-        numcols = [
-            c for c in d.columns if c != "task" and pd.api.types.is_numeric_dtype(d[c])
-        ]
-        if numcols:
-            d = d.rename(columns={numcols[0]: "count"})
-        else:
-            # last resort: count rows per task
-            d = d.groupby("task", as_index=False).size().rename(columns={"size": "count"})
-
-    return d[["task", "count"]]
-
-
-def _fig_runs_per_task(obj):
-    d = _as_task_counts(obj)
-    if d is None or d.empty:
-        return None
-    d = d.sort_values("count", ascending=False)
-    fig = px.bar(d, x="task", y="count")
-    fig.update_layout(
-        title="Functional runs per task",
-        margin=dict(l=10, r=10, t=40, b=10),
-        height=420,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
-    fig.update_xaxes(tickangle=-35)
-    return fig
-
-
-# ── Build figures (won’t crash if sections are missing) ──────────────────────
-fig_avail = _fig_availability(SUMMARY.get("avail"))
-fig_runs = _fig_runs_per_task(SUMMARY.get("func_counts"))
-
-# ── Page layout ───────────────────────────────────────────────────────────────
-layout = html.Div(
-    [
-        html.H2("BIDS Summary", style={"margin": "6px 0 12px 0"}),
-        # Availability section
-        card(
-            [
-                html.H4("Availability overview", style={"marginTop": 0}),
-                html.Div(
-                    [
-                        card(
-                            dcc.Graph(figure=fig_avail)
-                            if fig_avail
-                            else html.Div("No plot available", style={"color": "#9ca3af"})
+        # Handle directories recursively
+        if entry.is_dir():
+            children.append(
+                html.Details(
+                    open=False,
+                    style={"marginBottom": "2px"},
+                    children=[
+                        html.Summary(
+                            [
+                                html.Span(icon + " ", style={"color": color}),
+                                html.Span(entry.name, style={"color": color, "fontWeight": "600"}),
+                            ],
+                            style=style,
                         ),
-                        make_table("Availability by datatype", SUMMARY.get("avail")),
+                        html.Div(render_dir_tree(entry, level + 1)),
                     ],
-                    style=grid2,
-                ),
-            ]
-        ),
-        html.Div(style={"height": "14px"}),
+                )
+            )
+        else:
+            # File previews for .json and .tsv
+            preview = None
+            if entry.suffix.lower() == ".json":
+                try:
+                    with open(entry, "r") as f:
+                        parsed = json.load(f)
+                    formatted = json.dumps(parsed, indent=2)
+                    preview = html.Pre(
+                        formatted,
+                        style={
+                            "backgroundColor": "#f3f4f6",
+                            "padding": "10px",
+                            "borderRadius": "8px",
+                            "overflowX": "auto",
+                            "fontSize": "13px",
+                            "marginLeft": f"{indent + 25}px",
+                        },
+                    )
+                except Exception as e:
+                    preview = html.Div(f"⚠️ Could not parse JSON: {e}",
+                                       style={"color": "red", "marginLeft": f"{indent + 25}px"})
+            
+            elif entry.suffix.lower() == ".tsv":
+                try:
+                    df = pd.read_csv(entry, sep="\t")
+                    preview = html.Div(
+                        [
+                            html.Table(
+                                [
+                                    html.Thead(html.Tr([html.Th(col) for col in df.columns])),
+                                    html.Tbody([
+                                        html.Tr([html.Td(str(df.iloc[i, j])) for j in range(len(df.columns))])
+                                        for i in range(min(10, len(df)))
+                                    ])
+                                ],
+                                style={
+                                    "borderCollapse": "collapse",
+                                    "width": "90%",
+                                    "marginLeft": f"{indent + 25}px",
+                                    "backgroundColor": "#fafafa",
+                                    "fontSize": "13px",
+                                },
+                            ),
+                            html.Div(
+                                f"Showing first {min(10, len(df))} of {len(df)} rows",
+                                style={
+                                    "color": "#6b7280",
+                                    "fontSize": "12px",
+                                    "marginLeft": f"{indent + 25}px",
+                                    "marginTop": "4px",
+                                },
+                            ),
+                        ]
+                    )
+                except Exception as e:
+                    preview = html.Div(f"⚠️ Could not read TSV: {e}",
+                                       style={"color": "red", "marginLeft": f"{indent + 25}px"})
 
-        # Runs per task
-        card(
-            [
-                html.H4("Functional runs per task", style={"marginTop": 0}),
-                dcc.Graph(figure=fig_runs)
-                if fig_runs
-                else html.Div("No functional runs to show", style={"color": "#9ca3af"}),
-            ]
-        ),
-        html.Div(style={"height": "14px"}),
+            # File entry (collapsible if preview available)
+            if preview:
+                children.append(
+                    html.Details(
+                        style={"marginBottom": "3px"},
+                        children=[
+                            html.Summary(
+                                [
+                                    html.Span(icon + " ", style={"color": "#aaa"}),
+                                    html.Span(entry.name, style={"color": "#333"}),
+                                ],
+                                style=style,
+                            ),
+                            preview,
+                        ],
+                    )
+                )
+            else:
+                # Plain file with no preview
+                children.append(
+                    html.Div(
+                        [html.Span(icon + " ", style={"color": "#aaa"}), html.Span(entry.name)],
+                        style={**style, "color": "#444", "paddingLeft": "6px"},
+                    )
+                )
 
-        # TR summary table
-        card(
-            [
-                html.H4("TR summary by task", style={"marginTop": 0}),
-                make_table("TR summary by task", SUMMARY.get("tr_by_task"), page_size=8),
-            ]
-        ),
-    ],
-    style={"display": "grid", "gap": "16px"},
-)
+    return children
+
+
+# ---------------------------------------------------------------------
+# Layout
+# ---------------------------------------------------------------------
+def layout():
+    return html.Div(
+        style={
+            "fontFamily": "Inter, sans-serif",
+            "margin": "30px auto",
+            "maxWidth": "1200px",
+        },
+        children=[
+            html.H2("🧠 BIDS Dataset Summary", style={"marginBottom": "10px"}),
+            html.P(
+                f"Directory structure of BIDS dataset",
+                style={"color": "#6b7280", "marginBottom": "25px"},
+            ),
+            html.Div(
+                style={
+                    "backgroundColor": "#f9fafb",
+                    "padding": "20px 30px",
+                    "borderRadius": "10px",
+                    "boxShadow": "0 4px 12px rgba(0,0,0,0.08)",
+                    "overflowY": "auto",
+                    "maxHeight": "75vh",
+                },
+                children=render_dir_tree(dataset_root),
+            ),
+        ],
+    )
