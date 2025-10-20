@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from pathlib import Path
 from typing import Any, Dict, List
 import json
 import numpy as np
 import pandas as pd
 
-# Make PyBIDS import failure explicit & helpful at runtime
 try:
     from bids import BIDSLayout  # type: ignore
 except Exception as _IMPORT_ERR:  # pragma: no cover
@@ -22,7 +20,7 @@ def _safe_read_json(path: Path) -> Dict[str, Any]:
 
 
 def _participants_df(root: Path) -> pd.DataFrame:
-    """Return participants.tsv as a DataFrame with a couple of normalized helpers."""
+    """Return participants.tsv as a DataFrame with normalized helpers."""
     p = root / "participants.tsv"
     if not p.exists():
         return pd.DataFrame()
@@ -43,28 +41,35 @@ def _participants_df(root: Path) -> pd.DataFrame:
                 break
 
         return df
-    except Exception:
+    except Exception as e:
+        print(f"[WARN] Could not read participants.tsv: {e}")
         return pd.DataFrame()
+
 
 
 def summarize_bids(root: Path, validate: bool = False) -> Dict[str, Any]:
     """
     Summarize a BIDS dataset using PyBIDS.
-
-    Returns a dict with:
-      - n_files: int
-      - subjects/sessions/tasks/datatypes: lists of strings
-      - avail: DataFrame (rows=sub, cols=datatype; counts of files)
-      - func_counts: DataFrame (rows=subject, cols=task; counts of functional runs)
-      - size_by_datatype: DataFrame with total bytes (and GB) per datatype
-      - counts_by_suffix: DataFrame with file counts per suffix
-      - tr_by_task: DataFrame (per task: count/min/median/max + distinct_TRs)
-      - dataset_description: dict
-      - participants: DataFrame (may be empty)
     """
     root = Path(root)
+    if not root.exists():
+        print(f"[WARN] BIDS root does not exist → {root}")
+        return {
+            "n_files": 0,
+            "subjects": [],
+            "sessions": [],
+            "tasks": [],
+            "datatypes": [],
+            "avail": pd.DataFrame(),
+            "func_counts": pd.DataFrame(),
+            "size_by_datatype": pd.DataFrame(),
+            "counts_by_suffix": pd.DataFrame(),
+            "tr_by_task": pd.DataFrame(),
+            "dataset_description": {},
+            "participants": pd.DataFrame(),
+        }
 
-    if BIDSLayout is None:  # pragma: no cover
+    if BIDSLayout is None:
         raise RuntimeError(
             "PyBIDS is required for summarize_bids but is not installed. "
             "Install it with `pip install pybids`."

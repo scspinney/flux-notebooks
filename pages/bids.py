@@ -11,18 +11,30 @@ from flux_notebooks.bids.summarize_bids import summarize_bids
 
 dash.register_page(__name__, path="/bids", name="BIDS Summary")
 
-# ── Locate dataset (works for superdemo/ and superdemo/bids/) ────────────────
-DATASET_ROOT = Path(os.environ.get("FLUX_DATASET_ROOT", "superdemo")).resolve()
-BIDS_ROOT = (
-    DATASET_ROOT
-    if (DATASET_ROOT / "dataset_description.json").exists()
-    else (DATASET_ROOT / "bids")
-).resolve()
+# ── Locate dataset root robustly ─────────────────────────────────────────────
+DATASET_ROOT = Path(os.environ.get("FLUX_DATASET_ROOT", "superdemo_real")).resolve()
 
-# ── Compute summary once at import (fast + keeps page snappy) ────────────────
-SUMMARY = summarize_bids(BIDS_ROOT)
+# Prefer nested /bids if it exists
+if (DATASET_ROOT / "bids" / "dataset_description.json").exists():
+    BIDS_ROOT = DATASET_ROOT / "bids"
+elif (DATASET_ROOT / "dataset_description.json").exists():
+    BIDS_ROOT = DATASET_ROOT
+else:
+    print(f"[WARN] No BIDS dataset found under {DATASET_ROOT}")
+    BIDS_ROOT = None
 
-# Coerce distinct_TRs to strings so DataTable renders safely
+# ── Summarize dataset safely ────────────────────────────────────────────────
+if BIDS_ROOT and BIDS_ROOT.exists():
+    print(f"[BIDS] Using root: {BIDS_ROOT}")
+    SUMMARY = summarize_bids(BIDS_ROOT)
+else:
+    SUMMARY = {
+        "avail": pd.DataFrame(),
+        "func_counts": pd.DataFrame(),
+        "tr_by_task": pd.DataFrame(),
+    }
+
+# Coerce distinct_TRs column for display
 if SUMMARY.get("tr_by_task") is not None and not SUMMARY["tr_by_task"].empty:
     tr_df = SUMMARY["tr_by_task"].copy()
     if "distinct_TRs" in tr_df.columns:

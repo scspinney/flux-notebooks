@@ -47,6 +47,6 @@ def summarize_subject_inventory(sub_id: str):
         "Session IDs": ", ".join(sessions) if sessions else "—",
         "Acquisitions": ", ".join(sorted(acquisitions)) if acquisitions else "—",
         "Tasks": ", ".join(sorted(tasks)) if tasks else "—",
-        "Echoes per Task": ", ".join([f"{t}:{n}" for t, n in echo_counts.items()]) if echo_counts else "—",
+       # "Echoes per Task": ", ".join([f"{t}:{n}" for t, n in echo_counts.items()]) if echo_counts else "—",
         "Has fMRIPrep": "✅" if fmriprep_exists else "❌",
     }
