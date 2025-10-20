@@ -24,3 +24,8 @@ __pycache__/
 .ipynb_checkpoints/
 book/_build/
 data/
+
+
+build_superdemo_real.py
+dash_debug.log
+rename_bids_anat_func.py
