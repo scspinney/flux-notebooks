@@ -164,11 +164,22 @@ def _px_bar(df, x, y, color=None, facet_row=None, facet_col=None, category_order
     )
     fig.update_layout(
         title=title,
-        margin=dict(l=10, r=10, t=50, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=60, r=140, t=60, b=80),
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.98,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="rgba(0,0,0,0.1)",
+            borderwidth=1,
+            font=dict(size=13),
+        ),
         bargap=0.15,
         template="plotly_white",
     )
+
     fig.update_xaxes(tickangle=0)
     return fig
 
@@ -366,6 +377,8 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
             color_discrete_map=SITE_COLOURS,
             labels={"label":"Ethnicity","Count":"Participants"}
         )
+        figs["ethnicity_full"].update_xaxes(tickangle=35)
+
 
     # Ethnicity White/Non-white
     if not eth_wide.empty:
@@ -394,6 +407,8 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
             color_discrete_map=SITE_COLOURS,
             labels={"income_lbl":"Income","Count":"Participants"}
         )
+        figs["income"].update_xaxes(tickangle=35)
+
 
     # MRI timeline
     if not timeline.empty:
@@ -493,15 +508,40 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
             x="age_block", y="N", color="Measure",
             facet_row="sex_lbl", facet_col="site",
             barmode="group",
+            facet_row_spacing=0.08,    
+            facet_col_spacing=0.04, 
             category_orders={"age_block": AGE_BLOCKS, "site": SITE_ORDER, "Measure": MEASURE_ORDER},
             color_discrete_map=MEASURE_COLOURS,
-            labels={"age_block":"Age group","N":"Participants"},
+            labels={"age_block": "Age group", "N": "Participants"},
             title="Observed vs Target by Age × Sex, per site",
         )
-        # Force *all* x-axes in the faceted fig to categorical
-        fig.for_each_xaxis(lambda ax: ax.update(type="category", tickangle=0))
-        fig.update_layout(template="plotly_white", margin=dict(l=10,r=10,t=50,b=10))
+
+        # Ensure all x-axes show tick labels (every row)
+        fig.for_each_xaxis(lambda ax: ax.update(type="category", tickangle=0, showticklabels=True))
+
+        # Unlink y-axes so each facet scales independently
+        for yaxis in fig.layout:
+            if yaxis.startswith("yaxis"):
+                fig.layout[yaxis].matches = None
+
+        fig.update_layout(
+            template="plotly_white",
+            margin=dict(l=60, r=140, t=60, b=80),
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=0.98,
+                xanchor="left",
+                x=1.02,
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.1)",
+                borderwidth=1,
+                font=dict(size=13),
+            ),
+        )
+
         figs["overlay_age_sex"] = fig
+
 
 
     # ── Overlay: Age × Ethnicity (force categorical x across all facets) ────────
@@ -527,6 +567,8 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
             x="age_block", y="N", color="Measure",
             facet_row="Ethnicity", facet_col="site",
             barmode="group",
+            facet_row_spacing=0.04,    # 🟩 add here
+            facet_col_spacing=0.02,    # 🟩 add here
             category_orders={
                 "age_block": AGE_BLOCKS,
                 "Ethnicity": ETHNICITY_ORDER_TARGET,
@@ -534,12 +576,38 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
                 "Measure": MEASURE_ORDER,
             },
             color_discrete_map=MEASURE_COLOURS,
-            labels={"age_block":"Age group","N":"Participants"},
+            labels={"age_block": "Age group", "N": "Participants"},
             title="Observed vs Target by Age × Ethnicity, per site",
         )
-        fig.for_each_xaxis(lambda ax: ax.update(type="category", tickangle=0))
-        fig.update_layout(template="plotly_white", margin=dict(l=10,r=10,t=50,b=10))
+
+
+        # Ensure all x-axes show tick labels (every row)
+        fig.for_each_xaxis(lambda ax: ax.update(type="category", tickangle=0, showticklabels=True))
+        fig.for_each_annotation(lambda a: a.update(text=a.text.replace("Ethnicity=", "")))
+        fig.update_xaxes(tickangle=0)
+        # Unlink y-axes so each facet scales independently
+        for yaxis in fig.layout:
+            if yaxis.startswith("yaxis"):
+                fig.layout[yaxis].matches = None
+
+        fig.update_layout(
+            template="plotly_white",
+            margin=dict(l=60, r=140, t=60, b=80),
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=0.98,
+                xanchor="left",
+                x=1.02,
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.1)",
+                borderwidth=1,
+                font=dict(size=13),
+            ),
+        )
+
         figs["overlay_age_ethnicity"] = fig
+
 
 
     # Overlay: Ethnicity totals (Observed vs Target)
@@ -675,9 +743,59 @@ def summarize_redcap(dataset_root: Path) -> Dict[str, object]:
                                                   template="plotly_white",
                                                   margin=dict(l=10,r=10,t=50,b=10))
 
+    for key, f in figs.items():
+        figs[key] = fluxify_fig(f)
+
+
     return {
         "figures": figs,
         "counts": counts,
         "counts_na": na_counts,
         "baseline": baseline,
     }
+
+def fluxify_fig(fig: go.Figure, auto_height: bool = True) -> go.Figure:
+    if not fig or not getattr(fig, "layout", None):
+        return fig
+
+    fig.update_layout(
+        template="plotly_white",
+        font=dict(family="Inter, system-ui, sans-serif", size=13, color="#1e293b"),
+        title=dict(font=dict(size=17, color="#111827"), x=0.5, xanchor="center"),
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.98,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="rgba(0,0,0,0.1)",
+            borderwidth=1,
+            font=dict(size=13),
+        ),
+        margin=dict(l=60, r=140, t=60, b=80),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        bargap=0.25,
+    )
+
+    for ax in fig.layout:
+        if ax.startswith("xaxis") or ax.startswith("yaxis"):
+            axis = fig.layout[ax]
+            axis.title.font.size = 18
+            axis.tickfont.size = 13
+            axis.showgrid = True
+            axis.gridcolor = "#e5e7eb"
+            if ax.startswith("xaxis"):
+                axis.title.text = None
+                axis.tickangle = 35
+
+    if auto_height:
+        n_facets = sum(1 for k in fig.layout if k.startswith("yaxis"))
+        fig.update_layout(height=min(250 * n_facets, 1800) if n_facets > 4 else 600)
+
+    return fig
+
+
+
+
