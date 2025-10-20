@@ -1,9 +1,16 @@
 from pathlib import Path
 from flux_notebooks.config import Settings
+import re 
 
 S = Settings.from_env()
 DATA_ROOT = Path(S.dataset_root) / "bids"
 DERIV_ROOT = Path(S.dataset_root) / "derivatives"
+
+PROJECT_MAP = {
+    "c": "Concussion",
+    "n": "Neurogenetics",
+}
+
 
 def summarize_subject_inventory(sub_id: str):
     """Return high-level info about what data exists for this subject."""
@@ -39,14 +46,24 @@ def summarize_subject_inventory(sub_id: str):
                 elif "_dwi" in fname:
                     acquisitions.add("DWI")
 
-    fmriprep_path = DERIV_ROOT / "fmriprep" / sub_id
-    fmriprep_exists = fmriprep_path.exists()
+    # fmriprep_path = DERIV_ROOT / "fmriprep" / sub_id
+    # fmriprep_exists = fmriprep_path.exists()
+
+    demo_letter = None
+    for ses in sessions:
+        # e.g., ses-c1a → captures 'c'
+        match = re.match(r"^ses-([a-zA-Z])\d+[abc]$", ses)
+        if match:
+            demo_letter = match.group(1).lower()
+            break
+    demo_project = PROJECT_MAP.get(demo_letter, None)
 
     return {
         "Sessions": n_sessions,
         "Session IDs": ", ".join(sessions) if sessions else "—",
         "Acquisitions": ", ".join(sorted(acquisitions)) if acquisitions else "—",
         "Tasks": ", ".join(sorted(tasks)) if tasks else "—",
-       # "Echoes per Task": ", ".join([f"{t}:{n}" for t, n in echo_counts.items()]) if echo_counts else "—",
-        "Has fMRIPrep": "✅" if fmriprep_exists else "❌",
+        "Demonstration project subject": (
+        f"✅ {demo_project}" if demo_project else "❌"
+        ),
     }

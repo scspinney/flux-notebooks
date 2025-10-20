@@ -7,6 +7,7 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 
+
 import re, mimetypes, logging
 from pathlib import Path, PurePosixPath
 from flask import Response, send_file, send_from_directory, abort
@@ -76,7 +77,7 @@ server = app.server
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s: %(message)s")
 app.logger.setLevel(logging.DEBUG)
 
-# Global index overrides
+# Global index overrides (cleaned)
 app.index_string = """
 <!DOCTYPE html>
 <html>
@@ -88,10 +89,11 @@ app.index_string = """
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f8f9fa;
       margin: 0;
       padding: 0;
     }
+
+    /* Optional animations */
     .card-fade {
       opacity: 0;
       transform: translateY(10px);
@@ -101,6 +103,8 @@ app.index_string = """
       from { opacity: 0; transform: translateY(15px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Optional glassy overlay style for dashboards */
     .glass-card {
       background: rgba(255,255,255,0.75);
       border: 1px solid rgba(255,255,255,0.3);
@@ -119,6 +123,7 @@ app.index_string = """
 </body>
 </html>
 """
+
 
 # Layout: Navbar + Page container + Footer
 app.layout = html.Div(
@@ -265,6 +270,15 @@ def serve_static(subpath):
         abort(404)
     app.logger.info(f"📄 Serving static file: {full_path}")
     return send_file(str(full_path))
+
+
+
+from pages import home, bids
+
+home.register_callbacks(app)
+bids.register_callbacks(app)
+
+
 
 # ╭─────────────────────────────────────────────────────────────╮
 # │ 6. Main entrypoint                                          │
