@@ -381,7 +381,7 @@ def layout(subject_id=None, **kwargs):
                     [
                         dbc.Button("← Back to Search", href="/subject/none", color="secondary"),
                         dbc.Button("🧠 MRIQC Reports", href=f"/mriqc-detail/{subject_id}", color="info"),
-                        dbc.Button("🧩 fMRIPrep Summary", href=f"/fmriprep/{subject_id}", color="primary"),
+                        dbc.Button("🧩 fMRIPrep Summary", href=f"/fmriprep-detail/{subject_id}", color="primary"),
                     ],
                     size="lg",
                     className="d-flex justify-content-center mb-4 gap-2",
@@ -397,7 +397,7 @@ def layout(subject_id=None, **kwargs):
             html.Div(id="qc-container", children=make_qc_strip(subject_id)),
             make_pipeline_status(subject_id),
             html.Footer(
-                "© 2025 Flux Dashboards | REDCap + BIDS-Flux integration",
+                "© 2025 BIDS-Flux Dashboards",
                 className="text-center text-muted mt-5",
             ),
         ],

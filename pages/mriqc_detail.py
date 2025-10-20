@@ -121,7 +121,7 @@ def layout(subject_id=None, **kwargs):
                 className="text-center"
             ),
             html.Footer(
-                "© 2025 Flux Dashboards | REDCap + BIDS-Flux integration",
+                "© 2025 BIDS-Flux Dashboards",
                 className="text-center text-muted mt-5"
             ),
         ],

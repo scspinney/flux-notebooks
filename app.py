@@ -36,7 +36,9 @@ else:
 # ╰─────────────────────────────────────────────────────────────╯
 def build_navbar():
     """Unified top navigation bar using Bootstrap."""
-    pages = sorted(dash.page_registry.values(), key=lambda p: p["path"])
+    HIDDEN_PAGES = {"MRIQC Detail", "fMRIPrep Detail", "FreeSurfer Summary"}
+    pages = [p for p in dash.page_registry.values() if p["name"] not in HIDDEN_PAGES]
+    
     nav_links = [
         dbc.NavItem(dbc.NavLink(page["name"], href=page["path"], active="exact"))
         for page in pages
@@ -44,7 +46,7 @@ def build_navbar():
     return dbc.Navbar(
         dbc.Container(
             [
-                dbc.NavbarBrand("Flux Dashboards", href="/", class_name="fw-bold fs-4 me-4"),
+                dbc.NavbarBrand("BIDS-Flux Dashboards", href="/", class_name="fw-bold fs-4 me-4"),
                 dbc.Nav(nav_links, pills=True, navbar=True),
             ],
             fluid=True,
@@ -67,7 +69,7 @@ app = Dash(
     use_pages=True,
     suppress_callback_exceptions=True,
     external_stylesheets=[dbc.themes.MINTY],
-    title="Flux Dashboards",
+    title="BIDS-Flux Dashboards",
 )
 
 server = app.server
@@ -80,7 +82,7 @@ app.index_string = """
 <html>
 <head>
   {%metas%}
-  <title>Flux Dashboards</title>
+  <title>BIDS-Flux Dashboards</title>
   {%favicon%}
   {%css%}
   <style>
@@ -125,7 +127,7 @@ app.layout = html.Div(
         build_navbar(),
         html.Div(dash.page_container, id="page-content", className="container-fluid px-4"),
         html.Footer(
-            "© 2025 Flux Dashboards | REDCap + BIDS-Flux integration",
+            "© 2025 BIDS-Flux Dashboards",
             className="text-center text-muted mt-5 mb-3 small",
         ),
     ]
@@ -225,6 +227,25 @@ def serve_mriqc(relpath: str):
         abort(403)
     app.logger.info(f"📄 Serving MRIQC file: {full}")
     return _send_any_file(full)
+
+# @server.route("/fmriprep_files/<path:relpath>")
+# def serve_fmriprep(relpath: str):
+#     fmriprep_root = (DATASET_ROOT / "derivatives" / "fmriprep").resolve()
+#     full = (fmriprep_root / relpath).resolve()
+#     try:
+#         full.relative_to(fmriprep_root)
+#     except ValueError:
+#         abort(403)
+#     app.logger.info(f"📄 Serving fMRIPrep file: {full}")
+#     return send_file(full)
+
+@app.server.route("/fmriprep_files/<path:filename>")
+def serve_fmriprep(filename):
+    full = Path(S.dataset_root) / "derivatives" / "fmriprep" / filename
+    if not full.exists():
+        return f"File not found: {full}", 404
+    return send_file(full)
+
 
 @server.route("/assets/<path:path>")
 def serve_assets(path):

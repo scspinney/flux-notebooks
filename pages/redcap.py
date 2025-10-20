@@ -44,16 +44,27 @@ def fig_or_msg(key: str, msg: str, height: int | str | None = 400, style_extra=N
     if fig is not None and getattr(fig, "data", None):  # non-empty figure
         # Smaller mode bar, no logo; figures produced upstream should already be plotly_white
         return dcc.Graph(
-            figure=fig,
-            style=style,
-            config={
-                "displaylogo": False,
-                "modeBarButtonsToRemove": [
-                    "lasso2d", "select2d", "autoScale2d", "toggleSpikelines",
-                    "toImage", "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
-                ],
-            },
-        )
+                    figure=fig,
+                    style=style,
+                    config={
+                        "displaylogo": False,
+                        "modeBarButtonsToRemove": [
+                            "lasso2d", "select2d", "autoScale2d", "toggleSpikelines",
+                            # 👇 remove "toImage" from here so the download PNG button appears
+                            "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
+                        ],
+                        "toImageButtonOptions": {
+                            "format": "png",
+                            "filename": key.replace(" ", "_"),
+                            "scale": 2,          # higher = better quality
+                            "width": None,       # defaults to graph width
+                            "height": None,      # defaults to graph height
+                        },
+                        "displayModeBar": True,
+                        "responsive": True,
+                    },
+                )
+
     return html.Div(
         msg,
         style={
@@ -125,26 +136,26 @@ def _fmt_pct(num, den):
 
 
 # Compute a few top-line KPIs from COUNTS / COUNTS_NA if available
-kpi_cards = []
-if COUNTS is not None:
-    try:
-        total_enrolled = int(COUNTS["Total available counts"].sum())
-        sites = ", ".join(list(COUNTS.index.astype(str)))
+# kpi_cards = []
+# if COUNTS is not None:
+#     try:
+#         total_enrolled = int(COUNTS["Total available counts"].sum())
+#         sites = ", ".join(list(COUNTS.index.astype(str)))
 
-        def _get(col):
-            return int(COUNTS_NA[col].sum()) if (COUNTS_NA is not None and col in COUNTS_NA) else 0
+#         def _get(col):
+#             return int(COUNTS_NA[col].sum()) if (COUNTS_NA is not None and col in COUNTS_NA) else 0
 
-        age_na = _get("Age NA")
-        sex_na = _get("Sex NA")
-        eth_na = _get("Ethnicity NA")
-        kpi_cards = [
-            _kpi(f"{total_enrolled}", "Total baseline participants", f"Sites: {sites}"),
-            _kpi(f"{age_na}", "Age missing (N)", sub=_fmt_pct(age_na, total_enrolled)),
-            _kpi(f"{sex_na}", "Sex missing (N)", sub=_fmt_pct(sex_na, total_enrolled)),
-            _kpi(f"{eth_na}", "Ethnicity missing (N)", sub=_fmt_pct(eth_na, total_enrolled)),
-        ]
-    except Exception:
-        kpi_cards = []
+#         age_na = _get("Age NA")
+#         sex_na = _get("Sex NA")
+#         eth_na = _get("Ethnicity NA")
+#         kpi_cards = [
+#             _kpi(f"{total_enrolled}", "Total baseline participants", f"Sites: {sites}"),
+#             _kpi(f"{age_na}", "Age missing (N)", sub=_fmt_pct(age_na, total_enrolled)),
+#             _kpi(f"{sex_na}", "Sex missing (N)", sub=_fmt_pct(sex_na, total_enrolled)),
+#             _kpi(f"{eth_na}", "Ethnicity missing (N)", sub=_fmt_pct(eth_na, total_enrolled)),
+#         ]
+#     except Exception:
+#         kpi_cards = []
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 layout = html.Div(
@@ -159,74 +170,74 @@ layout = html.Div(
             "A narrative view of cohort recruitment, equity targets, timelines, and early mental-health insights.",
             style={"textAlign": "center", "color": "#6b7280", "marginBottom": "14px"},
         ),
-        html.Div(
-            f"Data root: {DATASET_ROOT}",
-            style={"textAlign": "center", "color": "#9ca3af", "fontSize": "12px", "marginBottom": "10px"},
-        ),
+        # html.Div(
+        #     f"Data root: {DATASET_ROOT}",
+        #     style={"textAlign": "center", "color": "#9ca3af", "fontSize": "12px", "marginBottom": "10px"},
+        # ),
 
         # Error banner (if any)
         *([card(html.Div(_load_error, style={"color": "#b91c1c"}))] if _load_error else []),
 
         # KPIs (responsive)
-        html.Div(style=grid_wrap, children=kpi_cards) if kpi_cards else html.Div(),
+        #html.Div(style=grid_wrap, children=kpi_cards) if kpi_cards else html.Div(),
 
         html.Div(style={"height": "12px"}),
 
         # Quick filters row (kept for future callbacks; non-blocking UI)
-        card(
-            [
-                html.Div(
-                    style=grid3,
-                    children=[
-                        html.Div(
-                            [
-                                html.Label("Site", style={"fontWeight": 600}),
-                                dcc.Dropdown(
-                                    id="redcap-filter-site",
-                                    options=[
-                                        {"label": s, "value": s}
-                                        for s in (COUNTS.index.tolist() if COUNTS is not None else ["Calgary", "Montreal", "Toronto"])
-                                    ],
-                                    placeholder="All sites",
-                                    multi=True,
-                                    className="flux-input",
-                                ),
-                            ]
-                        ),
-                        html.Div(
-                            [
-                                html.Label("Age group", style={"fontWeight": 600}),
-                                dcc.Dropdown(
-                                    id="redcap-filter-age",
-                                    options=[{"label": a, "value": a} for a in ["0-2", "2-5", "6-9", "10-12", "13-15", "16-18"]],
-                                    placeholder="All age groups",
-                                    multi=True,
-                                    className="flux-input",
-                                ),
-                            ]
-                        ),
-                        html.Div(
-                            [
-                                html.Label("Show", style={"fontWeight": 600}),
-                                dcc.Checklist(
-                                    id="redcap-filter-show",
-                                    options=[
-                                        {"label": " Targets", "value": "Target"},
-                                        {"label": " Observed", "value": "Observed"},
-                                    ],
-                                    value=["Target", "Observed"],
-                                    inline=True,
-                                ),
-                            ]
-                        ),
-                    ],
-                ),
-                html.Div(
-                    "Filters are present for future callbacks; current figures reflect the full cohort.",
-                    style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "6px"},
-                ),
-            ]
-        ),
+        # card(
+        #     [
+        #         html.Div(
+        #             style=grid3,
+        #             children=[
+        #                 html.Div(
+        #                     [
+        #                         html.Label("Site", style={"fontWeight": 600}),
+        #                         dcc.Dropdown(
+        #                             id="redcap-filter-site",
+        #                             options=[
+        #                                 {"label": s, "value": s}
+        #                                 for s in (COUNTS.index.tolist() if COUNTS is not None else ["Calgary", "Montreal", "Toronto"])
+        #                             ],
+        #                             placeholder="All sites",
+        #                             multi=True,
+        #                             className="flux-input",
+        #                         ),
+        #                     ]
+        #                 ),
+        #                 html.Div(
+        #                     [
+        #                         html.Label("Age group", style={"fontWeight": 600}),
+        #                         dcc.Dropdown(
+        #                             id="redcap-filter-age",
+        #                             options=[{"label": a, "value": a} for a in ["0-2", "2-5", "6-9", "10-12", "13-15", "16-18"]],
+        #                             placeholder="All age groups",
+        #                             multi=True,
+        #                             className="flux-input",
+        #                         ),
+        #                     ]
+        #                 ),
+        #                 html.Div(
+        #                     [
+        #                         html.Label("Show", style={"fontWeight": 600}),
+        #                         dcc.Checklist(
+        #                             id="redcap-filter-show",
+        #                             options=[
+        #                                 {"label": " Targets", "value": "Target"},
+        #                                 {"label": " Observed", "value": "Observed"},
+        #                             ],
+        #                             value=["Target", "Observed"],
+        #                             inline=True,
+        #                         ),
+        #                     ]
+        #                 ),
+        #             ],
+        #         ),
+        #         html.Div(
+        #             "Filters are present for future callbacks; current figures reflect the full cohort.",
+        #             style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "6px"},
+        #         ),
+        #     ]
+        # ),
 
         html.Div(style={"height": "16px"}),
 
