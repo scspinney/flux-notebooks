@@ -1,0 +1,29 @@
+# bytecode, caches, logs
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# build artefacts
+book/_build/
+.mypy_cache/
+.datalad/
+.git/
+.gitignore
+*.egg-info/
+*.zip
+
+# heavy data folders (don’t copy into image)
+data/
+superdemo_real/
+derivatives/
+mriqc_reports_example/
+local_outputs/
+outputs/
+tmp/
+scratch/
+
+# misc
+*.nii*
+*.nii.gz
+*.html

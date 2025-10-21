@@ -351,3 +351,261 @@ footer {
 .info-toggle-tab:hover {
     background: #0064a3;
 }
+
+/* ───────────────────────────────────────────────
+   Flux Assistant Sidebar — Clean under-navbar layout
+   ─────────────────────────────────────────────── */
+
+/* Adjustable variable: your navbar height */
+:root {
+  --navbar-height: 64px; /* adjust to match your actual navbar height */
+}
+
+/* The dark overlay background when chat is open */
+.flux-chat-backdrop {
+  position: fixed;
+  top: var(--navbar-height);      /* 👈 start BELOW navbar */
+  left: 0;
+  width: 100%;
+  height: calc(100vh - var(--navbar-height)); /* 👈 only cover below navbar */
+  background: rgba(2, 6, 23, 0.25);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 900;                  /* below sidebar */
+}
+.flux-chat-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The vertical tab */
+.flux-chat-tab {
+  position: fixed;
+  top: calc(var(--navbar-height) + 40%);
+  left: 0;
+  z-index: 901;
+  background: linear-gradient(180deg, #0ea5e9, #2563eb);
+  color: #fff;
+  padding: 10px 12px;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  user-select: none;
+}
+
+/* Sidebar itself */
+.flux-chat-sidebar {
+  position: fixed;
+  top: var(--navbar-height);          /* 👈 start BELOW navbar */
+  left: -420px;                       /* hidden by default */
+  width: 420px;
+  max-width: 90vw;
+  height: calc(100vh - var(--navbar-height));
+  background: #ffffff;
+  box-shadow: inset 0 4px 6px rgba(0,0,0,0.05), 3px 0 12px rgba(0,0,0,0.15); /* box-shadow: 3px 0 12px rgba(0,0,0,0.15); */
+  border-right: 1px solid rgba(0,0,0,0.06);
+  transition: left 0.35s ease;
+  z-index: 902;                       /* above backdrop, below navbar */
+  display: flex;
+  flex-direction: column;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.flux-chat-sidebar.show {
+  left: 0;
+}
+
+
+/* Sidebar header */
+.flux-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(90deg, #f8fafc, #ffffff);
+  position: relative;
+}
+
+/* Title */
+.flux-chat-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1e293b;
+  margin: 0;
+  flex-grow: 1;
+}
+
+/* Sandbox button */
+.flux-chat-sandbox-btn {
+  background: #e2e8f0;
+  color: #1e293b;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: all 0.2s ease-in-out;
+}
+.flux-chat-sandbox-btn:hover {
+  background: #cbd5e1;
+}
+
+/* Close “✕” button */
+.flux-chat-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #475569;
+  transition: color 0.15s ease;
+}
+.flux-chat-close:hover {
+  color: #0ea5e9;
+}
+
+
+
+/* History scroll area */
+.flux-chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #f9fafb;
+}
+
+/* Footer input + send */
+.flux-chat-footer {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+.flux-chat-input {
+  height: 42px;
+}
+.flux-chat-send {
+  height: 42px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* Chat Markdown beautification */
+.flux-chat-markdown {
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 0.97rem;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+.flux-chat-markdown strong {
+  color: #0b74de;
+}
+
+.flux-chat-markdown code {
+  background: #e2e8f0;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.flux-chat-markdown ul,
+.flux-chat-markdown ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+
+.flux-chat-markdown li {
+  margin-bottom: 4px;
+}
+
+/* ───────────────────────────────────────────────
+   Flux Assistant Sandbox Styling
+   ─────────────────────────────────────────────── */
+
+.flux-assistant-sandbox {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.flux-assistant-sandbox textarea {
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+}
+
+.flux-assistant-sandbox .flux-chat-markdown {
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.flux-assistant-sandbox .flux-chat-markdown code {
+  background: #e2e8f0;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* Headings */
+.flux-assistant-sandbox .flux-chat-markdown h3,
+.flux-assistant-sandbox .flux-chat-markdown h2 {
+  color: #0f172a;
+  font-weight: 600;
+  margin-top: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Tables */
+.flux-assistant-sandbox .flux-chat-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.flux-assistant-sandbox .flux-chat-markdown th,
+.flux-assistant-sandbox .flux-chat-markdown td {
+  border: 1px solid #cbd5e1;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.flux-assistant-sandbox .flux-chat-markdown th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+/* Inline math and code blocks */
+.flux-assistant-sandbox .flux-chat-markdown pre code {
+  display: block;
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+/* Loader styling */
+.spinner-border, .spinner-grow {
+  color: #0ea5e9 !important; /* Flux blue */
+}
