@@ -352,6 +352,44 @@ footer {
     background: #0064a3;
 }
 
+
+/* Keep donuts compact and vertically aligned */
+.glass-card {
+    display: inline-flex;              /* better alignment than inline-block */
+    flex-direction: column;            /* stack title → graph → footer */
+    justify-content: flex-start;       /* keep contents aligned to top */
+    align-items: center;               /* center horizontally */
+    vertical-align: top;               /* align cards across baseline */
+    height: auto !important;           /* prevent stretching */
+}
+
+/* Keep plotly graphs proportional and not stretched */
+.glass-card .js-plotly-plot,
+.glass-card .dash-graph {
+    height: auto !important;
+    max-height: 240px;                 /* site donuts */
+    width: auto !important;
+    margin: 0 auto;
+}
+
+/* Fix vertical misalignment for the big donut */
+.dash-bootstrap .tab-content > div,
+.dash-bootstrap .tab-pane > div,
+div[style*="justify-content: center"] {
+  align-items: center !important;
+}
+
+/* Ensure glass-cards are sized naturally */
+.glass-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: auto !important;
+}
+
+
+
 /* ───────────────────────────────────────────────
    Flux Assistant Sidebar — Clean under-navbar layout
    ─────────────────────────────────────────────── */

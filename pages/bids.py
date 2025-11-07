@@ -225,7 +225,7 @@ def make_bids_info_panel(dataset_root, last_updated):
             # Panel content
             html.Div(
                 id="info-panel-content-bids",
-                className="floating-info-panel",
+                className="floating-info-panel collapsed",
                 children=[
                     html.H5("💡 Understanding the BIDS Summary", style={"marginBottom": "0.6rem"}),
 
