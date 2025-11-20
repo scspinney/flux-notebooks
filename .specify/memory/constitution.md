@@ -1,50 +1,42 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+Version: 0.1.0 → 1.0.0 (initial constitution for BIDS-Flux Dashboard)
+Added sections: All core principles defined for BIDS dashboard application
+Templates requiring updates: ⚠ pending validation of .specify/templates/*.md
+-->
+
+# BIDS-Flux Dashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Reproducibility First (NON-NEGOTIABLE)
+Every artifact (notebooks, summaries, CSVs) MUST be reproducible from the repository plus documented dataset pointers (DataLad/Git/URLs). Store generation commands and versions of dependencies used to create outputs. All processing workflows must include provenance metadata that allows exact reproduction of results from source data.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Data Privacy and Safety (NON-NEGOTIABLE)
+Do not commit any PHI or raw datasets to version control. Use small synthetic or example fixtures for tests and examples. Enforce comprehensive .gitignore rules and use Git LFS or DataLad for large/real datasets. All data handling must comply with institutional data governance policies.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. BIDS Compatibility and Provenance
+Treat BIDS datasets as the ground-truth schema; validate with pybids or bids-validator in CI when possible. When producing derived artifacts, record complete provenance including tool version, command parameters, and dataset version. All neuroimaging data processing must follow BIDS derivative specifications.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Minimal and Explicit External Effects
+CLI commands and library APIs MUST avoid side effects by default (provide dry-run mode or require explicit output specifications). Environment-dependent settings come from validated configuration (e.g., Settings.from_env()); CI and documentation must clearly show all required environment variables.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Open Governance and Contributor-Friendly
+Use permissive licensing (MIT). Provide comprehensive CONTRIBUTING.md, CODE_OF_CONDUCT.md, and clear issue/PR templates. All development processes must be documented and accessible to new contributors. Foster inclusive collaboration across neuroimaging research community.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VI. Stability and Semantic Versioning
+Semantic versioning for public APIs and CLI interfaces. Patch releases for bugfixes only, minor releases for new features, major releases for compatibility changes. Dashboard interfaces and data schemas require special consideration for backward compatibility to preserve existing research workflows.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## Data Handling Requirements
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+All BIDS data processing must maintain strict separation between raw data (never committed), quality control derivatives (MRIQC), preprocessing derivatives (fMRIPrep), and metadata (RedCap integration). Each data type requires appropriate validation, error handling, and user feedback mechanisms. Dashboard must gracefully handle missing or malformed datasets.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Standards
+
+Code quality enforced through pre-commit hooks (black, ruff, mypy). Comprehensive testing strategy with unit tests for pure functions and integration tests for BIDS dataset processing. Environment configuration through Pydantic models with clear validation. Type annotations required for all public interfaces. Documentation must include reproducible examples with synthetic datasets.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices. Amendments require documented rationale, community review, and migration plan for existing code. All pull requests must demonstrate compliance with core principles. Development complexity must be justified against reproducibility and maintainability benefits.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-11-20 | **Last Amended**: 2025-11-20
