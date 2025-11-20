@@ -29,3 +29,6 @@ data/
 build_superdemo_real.py
 dash_debug.log
 rename_bids_anat_func.py
+
+# Agentic 
+.claude
