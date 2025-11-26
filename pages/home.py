@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from datetime import datetime
 import dash_bootstrap_components as dbc
+import urllib.parse
 
 from flux_notebooks.redcap.summarize_targets import summarize_modalities
 from flux_notebooks.bids.summarize_bids import summarize_bids
@@ -85,6 +86,21 @@ def summarize_sessions(bids_root: Path, participants_file: Path):
     return summary
 
 
+def modality_icon_src(modality: str) -> str:
+    """
+    Return the icon path for a modality. Place your custom images in
+    flux-notebooks/assets/icons and reference them here.
+    """
+    icon_map = {
+        "T1W": "/assets/icons/t1w.png",           # T1 icon
+        "T2W": "/assets/icons/t2w.jpg",           # T2 icon
+        "task-partlycloudy": "/assets/icons/task.jpg",  # task icon (shared)
+        "task-laluna": "/assets/icons/task.jpg",        # task icon (shared)
+        "DWI": "/assets/icons/dwi.jpeg",          # DWI icon
+    }
+    return icon_map.get(modality, "/assets/icons/t1w.png")
+
+
 
 def make_pie(label, enrolled, target, emphasize=False):
     enrolled_pct = round((enrolled / target * 100), 1) if target else 0
@@ -148,65 +164,76 @@ def make_pie(label, enrolled, target, emphasize=False):
 
 
 
-# def make_pie(label, enrolled, target, emphasize=False):
-#     """Single donut chart."""
-#     enrolled_pct = round((enrolled / target * 100), 1) if target else 0
-#     site_color = SITE_COLORS.get(label, "#FFB300")
-#     fig = go.Figure()
-#     fig.add_trace(go.Pie(
-#         values=[enrolled, max(target - enrolled, 0)],
-#         labels=["Enrolled", "Remaining"],
-#         marker_colors=[site_color, "#E0E0E0"],
-#         hole=0.55, sort=False, textinfo="none", showlegend=False))
-#     size_factor = 2.2 if emphasize else 1.0
-#     base_size = 160
-#     fig.update_traces(marker_line=dict(color="white", width=2))
-#     fig.update_layout(
-#         height=int(base_size * size_factor),
-#         width=int(base_size * size_factor),
-#         margin=dict(t=10, b=10, l=10, r=10),
-#         paper_bgcolor="rgba(0,0,0,0)",
-#         plot_bgcolor="rgba(0,0,0,0)",
-#         annotations=[dict(
-#             text=f"<b>{enrolled_pct:.1f}%</b><br><span style='font-size:11px;color:#666;'>enrolled</span>",
-#             x=0.5, y=0.5, showarrow=False, align="center",
-#             font=dict(size=int(18 * size_factor), color="#111", family="Inter, sans-serif"))])
-#     gradient_color = f"radial-gradient(circle at 30% 30%, {site_color}, {site_color}15, #f8f8f8)"
-#     return html.Div(
-#         className="card-fade glass-card",
-#         style={"textAlign": "center", "margin": "10px", "padding": "12px",
-#                "borderRadius": "12px", "background": gradient_color,
-#                "boxShadow": "0 5px 14px rgba(0,0,0,0.15)" if emphasize else "0 3px 8px rgba(0,0,0,0.1)"},
-#         children=[
-#             html.H5(label, style={"marginBottom": "4px", "color": site_color, "fontWeight": "600"}),
-#             dcc.Graph(figure=fig, config={"displayModeBar": False}),
-#             html.Div(f"{enrolled}/{target} enrolled", style={"fontSize": "12px", "color": "#555"}),
-#         ],
-#     )
-
-
 def make_modality_summary(mod_data, site_name=None):
     site_color = SITE_COLORS.get(site_name, "#444")
     modality_labels = ["T1W", "T2W", "task-partlycloudy", "task-laluna", "DWI"]
-    percents = {m["name"]: m.get("percent", 0) for m in mod_data.get("modalities", [])}
-    rows = [
-        html.Div(
-            [html.Span(label, style={"fontWeight": "600"}),
-             html.Span(f"{percents.get(label,0):.1f}%", style={"float": "right", "color": site_color if percents.get(label,0)>=80 else "#888"})],
-            style={"marginBottom": "6px", "fontSize": "15px", "color": "#333" if percents.get(label,0)>0 else "#999"})
-        for label in modality_labels
-    ]
+    counts = {m["name"]: m.get("count", 0) for m in mod_data.get("modalities", [])}
+    total = mod_data.get("total", 0)
+
+    rows = []
+    for label in modality_labels:
+        count = counts.get(label, 0)
+        color = site_color if count else "#9ca3af"
+        rows.append(
+            html.Div(
+                style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "gap": "14px",
+                    "marginBottom": "12px",
+                    "fontSize": "15px",
+                    "color": "#1f2937",
+                    "padding": "8px 10px",
+                    "borderRadius": "12px",
+                    "background": "rgba(0,0,0,0.02)",
+                },
+                children=[
+                    html.Img(
+                        src=modality_icon_src(label),
+                        style={
+                            "width": "120px",
+                            "height": "82px",
+                            "borderRadius": "10px",
+                            "flexShrink": 0,
+                        },
+                    ),
+                    html.Div(
+                        style={"flexGrow": 1, "display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+                        children=[
+                            html.Span(
+                                label,
+                                style={
+                                    "fontWeight": "700" if count else "600",
+                                    "color": color,
+                                    "fontSize": "16px",
+                                    "paddingLeft": "4px",
+                                },
+                            ),
+                            html.Span(
+                                f"{count} / {total}" if total else f"{count}",
+                                style={"fontWeight": "700", "color": color, "fontSize": "16px", "whiteSpace": "nowrap", "paddingLeft": "10px"},
+                            ),
+                        ],
+                    ),
+                ],
+            )
+        )
+
     return html.Div(
         className="glass-card card-fade",
-        style={"padding": "35px 45px", "borderRadius": "16px", "minWidth": "360px",
-               "maxWidth": "420px", "minHeight": "260px", "textAlign": "left",
+        style={"padding": "26px 30px", "borderRadius": "16px", "minWidth": "380px",
+               "maxWidth": "440px", "minHeight": "320px", "textAlign": "left",
                "boxShadow": "0 4px 16px rgba(0,0,0,0.12)",
                "background": "linear-gradient(135deg, #ffffff 0%, #f7f7f7 100%)"},
         children=[
             html.H4(site_name, style={"textAlign": "center", "marginBottom": "12px",
-                                      "color": site_color, "fontWeight": "600"}),
+                                      "color": site_color, "fontWeight": "700"}),
             html.Div(className="site-line", style={"backgroundColor": site_color}),
             html.Div(rows),
+            html.Div(
+                f"Total subjects: {total}" if total else "No subjects found",
+                style={"marginTop": "6px", "fontSize": "13px", "color": "#6b7280"},
+            ),
         ],
     )
 
@@ -313,23 +340,122 @@ def layout():
             except Exception as e:
                 print(f"[WARN] Failed to read participants.tsv: {e}")
 
-        site_cards = []
+        site_data = []
         for site_label in SITE_MAP.values():
-            modalities = []
+            modalities = {}
             site_subjects = [s for s, site in site_map.items() if site.lower() == site_label.lower()]
             total = len(site_subjects)
             for mod in ["T1W", "T2W", "task-partlycloudy", "task-laluna", "DWI"]:
                 count = sum(1 for sub in site_subjects
                             if (bids_root / sub / f"ses-{session_suffix}").exists()
                             and any(mod.lower() in f.name.lower() for f in (bids_root / sub / f"ses-{session_suffix}").rglob("*.nii*")))
-                percent = round(100 * count / total, 1) if total else 0
-                modalities.append({"name": mod, "percent": percent})
-            site_cards.append(make_modality_summary({"modalities": modalities}, site_label))
+                modalities[mod] = count
+            site_data.append({"site": site_label, "counts": modalities, "total": total})
 
-        return dbc.Tab(label=label, tab_id=f"mod-{session_suffix}",
-                       children=html.Div(style={"display": "flex", "justifyContent": "center",
-                                                "gap": "35px", "flexWrap": "wrap", "marginTop": "25px"},
-                                         children=site_cards))
+        # Build a clean aligned grid: one icon+label column, counts columns per site.
+        modality_order = ["T1W", "T2W", "task-partlycloudy", "task-laluna", "DWI"]
+
+        left_column = html.Div(
+            style={
+                "display": "flex",
+                "flexDirection": "column",
+                "gap": "12px",
+                "padding": "6px 0",
+                "minWidth": "230px",
+            },
+            children=[html.Div(style={"height": "32px"})]  # spacer aligns with site headers
+            + [
+                html.Div(
+                    style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "gap": "14px",
+                        "padding": "10px 12px",
+                        "background": "#f8fafc",
+                        "borderRadius": "14px",
+                        "boxShadow": "inset 0 1px 2px rgba(0,0,0,0.06)",
+                        "height": "110px",
+                    },
+                    children=[
+                        html.Img(
+                            src=modality_icon_src(mod),
+                            style={"width": "120px", "height": "82px", "borderRadius": "12px", "flexShrink": 0},
+                        ),
+                        html.Span(
+                            {"task-partlycloudy": "task-partlycloudy", "task-laluna": "task-laluna"}.get(mod, mod),
+                            style={"fontWeight": "700", "color": "#111827", "fontSize": "16px"},
+                        ),
+                    ],
+                )
+                for mod in modality_order
+            ],
+        )
+
+        site_columns = []
+        for site_info in site_data:
+            site_label = site_info["site"]
+            counts_lookup = site_info["counts"]
+            total = site_info["total"]
+            site_columns.append(
+                html.Div(
+                    style={
+                        "display": "flex",
+                        "flexDirection": "column",
+                        "gap": "12px",
+                        "padding": "6px 0",
+                        "minWidth": "180px",
+                        "alignItems": "stretch",
+                    },
+                    children=[
+                        html.Div(
+                            site_label,
+                            style={
+                                "textAlign": "center",
+                                "fontWeight": "800",
+                                "color": SITE_COLORS.get(site_label, "#111"),
+                                "paddingBottom": "4px",
+                            },
+                        ),
+                        *[
+                            html.Div(
+                                f"{counts_lookup.get(mod,0)} / {total}",
+                                style={
+                                    "textAlign": "center",
+                                    "padding": "0 8px",
+                                    "background": "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
+                                    "borderRadius": "14px",
+                                    "boxShadow": "inset 0 1px 2px rgba(0,0,0,0.05)",
+                                    "fontWeight": "700",
+                                    "color": SITE_COLORS.get(site_label, "#111") if counts_lookup.get(mod,0) else "#9ca3af",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                    "height": "110px",
+                                },
+                            )
+                            for mod in modality_order
+                        ],
+                    ],
+                )
+            )
+
+        return dbc.Tab(
+            label=label,
+            tab_id=f"mod-{session_suffix}",
+            children=html.Div(
+                style={
+                    "display": "flex",
+                    "justifyContent": "center",
+                    "alignItems": "flex-start",
+                    "gap": "18px",
+                    "marginTop": "25px",
+                    "flexWrap": "nowrap",
+                    "overflowX": "auto",
+                    "paddingBottom": "10px",
+                },
+                children=[left_column] + site_columns,
+            ),
+        )
 
     timepoint_tabs = dbc.Tabs(
         [make_timepoint_tab("Baseline", "baseline"),
@@ -368,7 +494,7 @@ def layout():
 
             html.Div(style={"marginTop": "50px", "textAlign": "center"},
                      children=[html.H3("Imaging Modality Coverage by Site", style={"marginBottom": "5px"}),
-                               html.P("Each card shows the percentage of subjects at each site with available imaging modalities per timepoint.",
+                               html.P("Each card shows how many subjects at each site have each modality for the selected timepoint.",
                                       style={"color": "#6b7280", "fontSize": "16px",
                                              "marginBottom": "25px", "maxWidth": "800px", "margin": "0 auto"}),
                                modality_tabs]),

@@ -320,7 +320,7 @@ def layout():
             html.H2("🧠 BIDS Dataset Summary", style={"marginBottom": "6px"}),
 
              html.P(
-                 "This page shows the hierarchical structure of your BIDS dataset — "
+                 "This page shows the hierarchical structure of your BIDS dataset:  "
                 "from participants to sessions, modalities, and metadata files. "
                 "Use this view to verify dataset completeness and structure. To visit the data repository, use the Go to Data button.",
                 style={
