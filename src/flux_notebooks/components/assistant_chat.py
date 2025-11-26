@@ -1,4 +1,3 @@
-# flux_notebooks/components/assistant_chat.py
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
@@ -6,6 +5,12 @@ def render_chat():
     """Left slide-out chat under navbar."""
     return html.Div(
         [
+            # ─────────────────────────────
+            # ✅ NEW: Conversation history store
+            # Holds OpenAI-style [{"role": "...", "content": "..."}]
+            # ─────────────────────────────
+            dcc.Store(id="chat-message-store", data=[]),
+
             html.Div(id="chat-backdrop", className="flux-chat-backdrop"),
 
             # Vertical tab stays pinned under navbar

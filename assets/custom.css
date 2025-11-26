@@ -1,649 +1,253 @@
-/* ╭──────────────────────────────────────────────╮
-   │ BIDS-Flux Global Theme (Elevated v2.0)       │
-   ╰──────────────────────────────────────────────╯ */
-
-/* ====== GLOBAL LAYOUT ====== */
-body {
-    background: linear-gradient(180deg, #f8fafc 0%, #eef1f4 100%) fixed !important;
-    font-family: 'Inter', 'Helvetica Neue', sans-serif;
-    color: #0f172a;  /* deep slate text */
-    margin: 0;
-    padding: 0;
-    font-size: 16px;
-    line-height: 1.6;
-    letter-spacing: 0.01em;
-    -webkit-font-smoothing: antialiased;
-}
-
-/* Smooth transitions globally */
-* {
-    transition: all 0.2s ease-in-out;
-}
-
-/* ====== TYPOGRAPHY ====== */
-h1, h2, h3, h4, h5 {
-    font-weight: 600;
-    color: #002B4E;
-    letter-spacing: -0.015em;
-}
-
-h1 {
-    font-size: 2.2rem;
-    margin-bottom: 0.6em;
-}
-
-h2 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5em;
-}
-
-p {
-    font-size: 1.05rem;
-    color: #334155;
-    margin-bottom: 1rem;
-}
-
-/* ====== CONTAINERS ====== */
-.container-fluid {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-/* ====== NAVBAR ====== */
-.navbar {
-    background: linear-gradient(90deg, #002B4E 0%, #003E6B 100%) !important;
-    box-shadow: 0 3px 18px rgba(0, 0, 0, 0.12);
-}
-
-.navbar-brand {
-    font-size: 1.5rem !important;
-    letter-spacing: -0.01em;
-    color: #ffffff !important;
-}
-
-.nav-link {
-    color: #e2e8f0 !important;
-    font-weight: 500;
-}
-
-.nav-link:hover, .nav-link.active {
-    color: #ffffff !important;
-    text-shadow: 0 0 8px rgba(255,255,255,0.3);
-}
-
-/* ====== CARDS & ACCORDIONS ====== */
-.card, .accordion-item {
-    background-color: #fcfcfd !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(0, 0, 0, 0.04) !important;
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.05),
-        0 8px 18px rgba(0, 0, 0, 0.06) !important;
-    padding: 0.5rem;
-}
-
-/* Accordion header polish */
-.accordion-button {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
-    font-weight: 500;
-    font-size: 1.05rem;
-    border: none !important;
-    border-radius: 12px !important;
-    padding: 0.9rem 1.25rem;
-}
-
-.accordion-button:not(.collapsed) {
-    background: linear-gradient(90deg, #E9F3FF 0%, #F8FBFF 100%) !important;
-    color: #003E6B !important;
-    box-shadow: inset 0 1px 4px rgba(0,0,0,0.06);
-}
-
-.accordion-body {
-    background-color: #ffffff !important;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-}
-
-/* ====== INPUTS, DROPDOWNS, BUTTONS ====== */
-.form-control, .Select-control {
-    font-size: 1rem !important;
-    border-radius: 10px !important;
-    border: 1px solid #d1d5db !important;
-    box-shadow: none !important;
-}
-
-.form-control:focus, .Select-control:focus {
-    border-color: #009FDF !important;
-    box-shadow: 0 0 0 3px rgba(0,159,223,0.15) !important;
-}
-
-.dash-dropdown .Select__menu {
-    border-radius: 10px !important;
-}
-
-/* Buttons */
-.btn, .btn-primary, .btn-info, .btn-success {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    padding: 0.6rem 1.2rem !important;
-}
-
-.btn-primary {
-    background: linear-gradient(90deg, #009FDF 0%, #00C6FF 100%) !important;
-    border: none !important;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(90deg, #00B4E6 0%, #00D4FF 100%) !important;
-}
-
-/* ====== EFFECTS ====== */
-
-/* Subtle floating card effect */
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.08),
-        0 8px 24px rgba(0, 0, 0, 0.06);
-}
-
-/* Accordion glow */
-.accordion-item:hover {
-    box-shadow: 0 4px 16px rgba(0,159,223,0.1);
-}
-
-/* Fade-in page content */
-#page-content {
-    animation: fadeInUp 0.7s ease;
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ====== FOOTER ====== */
-footer {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-top: 3rem;
-    text-align: center;
-}
-
-/* ====== UTILITY ====== */
-.shadow-light {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
-}
-
-.text-muted {
-    color: #64748b !important;
-}
-
-/* ====== FIX: Follow-up Tabs visibility ====== */
-
-.nav-tabs {
-    border-bottom: 2px solid #dbe2ea !important;
-    margin-bottom: 1rem;
-}
-
-.nav-tabs .nav-link {
-    background-color: #ffffff !important;
-    color: #4b5563 !important;
-    font-weight: 500;
-    border: 1px solid #e2e8f0 !important;
-    border-bottom: none !important;
-    border-radius: 10px 10px 0 0 !important;
-    padding: 0.6rem 1.2rem !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    margin-right: 0.4rem;
-}
-
-.nav-tabs .nav-link:hover {
-    background-color: #f0f4f8 !important;
-    color: #002B4E !important;
-}
-
-.nav-tabs .nav-link.active {
-    background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%) !important;
-    color: #002B4E !important;
-    font-weight: 600 !important;
-    border: 1px solid #cbd5e1 !important;
-    border-bottom: 2px solid #ffffff !important;
-    box-shadow:
-        0 -1px 8px rgba(0, 0, 0, 0.05),
-        0 2px 6px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* For dcc.Tabs */
-.tab {
-    background-color: #ffffff !important;
-    color: #374151 !important;
-    font-weight: 500 !important;
-    border: 1px solid #e5e7eb !important;
-    border-radius: 10px 10px 0 0 !important;
-    margin-right: 4px;
-    padding: 10px 20px;
-}
-
-.tab:hover {
-    background-color: #f1f5f9 !important;
-    color: #002B4E !important;
-}
-
-.tab--selected {
-    background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%) !important;
-    color: #002B4E !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-}
-
-
-/* ╭──────────────────────────────────────────────╮
-   │ Floating Vertical Info Panel (Home Page)     │
-   ╰──────────────────────────────────────────────╯ */
-
-.floating-info-panel {
-    position: fixed;
-    top: 100px; /* below navbar */
-    right: 40px;
-    width: 280px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    backdrop-filter: blur(10px);
-    padding: 1.2rem 1.4rem;
-    z-index: 1050; /* above cards */
-    animation: slideInRight 0.6s ease;
-}
-
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(40px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* Style the panel header + text */
-.floating-info-panel h5 {
-    font-weight: 600;
-    color: #002B4E;
-    font-size: 1.15rem;
-    margin-bottom: 0.6rem;
-}
-
-.floating-info-panel p, .floating-info-panel li {
-    font-size: 0.95rem;
-    color: #334155;
-    margin-bottom: 0.5rem;
-}
-
-/* Optional subtle scrollbar */
-.floating-info-panel::-webkit-scrollbar {
-    width: 6px;
-}
-.floating-info-panel::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
-}
-
-.floating-info-panel h5 {
-    color: #002B4E;
-    font-weight: 700;
-    font-size: 1.15rem;
-}
-
-.floating-info-panel h6 {
-    color: #003E6B;
-    font-weight: 600;
-    font-size: 1.0rem;
-    margin-bottom: 0.3rem;
-}
-
-/* Floating info panel wrapper */
-#collapsible-info-wrapper {
-    position: fixed;
-    top: 100px;
-    right: 0;
-    z-index: 999;
-}
-
-/* The actual info panel */
-.floating-info-panel {
-    width: 280px;
-    padding: 18px 20px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 10px 0 0 10px;
-    box-shadow: -4px 0 16px rgba(0,0,0,0.12);
-    transition: transform 0.4s ease, opacity 0.4s ease;
-}
-
-/* Collapsed state (slide out of view) */
-.floating-info-panel.collapsed {
-    transform: translateX(100%);
-    opacity: 0;
-}
-
-/* Little tab that stays visible */
-.info-toggle-tab {
-    position: absolute;
-    left: -30px;
-    top: 20px;
-    width: 30px;
-    height: 50px;
-    background: #003E6B;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px 0 0 8px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.2);
-    transition: background 0.2s ease;
-}
-
-.info-toggle-tab:hover {
-    background: #0064a3;
-}
-
-
-/* Keep donuts compact and vertically aligned */
-.glass-card {
-    display: inline-flex;              /* better alignment than inline-block */
-    flex-direction: column;            /* stack title → graph → footer */
-    justify-content: flex-start;       /* keep contents aligned to top */
-    align-items: center;               /* center horizontally */
-    vertical-align: top;               /* align cards across baseline */
-    height: auto !important;           /* prevent stretching */
-}
-
-/* Keep plotly graphs proportional and not stretched */
-.glass-card .js-plotly-plot,
-.glass-card .dash-graph {
-    height: auto !important;
-    max-height: 240px;                 /* site donuts */
-    width: auto !important;
-    margin: 0 auto;
-}
-
-/* Fix vertical misalignment for the big donut */
-.dash-bootstrap .tab-content > div,
-.dash-bootstrap .tab-pane > div,
-div[style*="justify-content: center"] {
-  align-items: center !important;
-}
-
-/* Ensure glass-cards are sized naturally */
-.glass-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: auto !important;
-}
-
-
-
-/* ───────────────────────────────────────────────
-   Flux Assistant Sidebar — Clean under-navbar layout
-   ─────────────────────────────────────────────── */
-
-/* Adjustable variable: your navbar height */
-:root {
-  --navbar-height: 64px; /* adjust to match your actual navbar height */
-}
-
-/* The dark overlay background when chat is open */
-.flux-chat-backdrop {
-  position: fixed;
-  top: var(--navbar-height);      /* 👈 start BELOW navbar */
-  left: 0;
-  width: 100%;
-  height: calc(100vh - var(--navbar-height)); /* 👈 only cover below navbar */
-  background: rgba(2, 6, 23, 0.25);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  pointer-events: none;
-  z-index: 900;                  /* below sidebar */
-}
-.flux-chat-backdrop.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* The vertical tab */
-.flux-chat-tab {
-  position: fixed;
-  top: calc(var(--navbar-height) + 40%);
-  left: 0;
-  z-index: 901;
-  background: linear-gradient(180deg, #0ea5e9, #2563eb);
-  color: #fff;
-  padding: 10px 12px;
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  cursor: pointer;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  user-select: none;
-}
-
-/* Sidebar itself */
-.flux-chat-sidebar {
-  position: fixed;
-  top: var(--navbar-height);          /* 👈 start BELOW navbar */
-  left: -420px;                       /* hidden by default */
-  width: 420px;
-  max-width: 90vw;
-  height: calc(100vh - var(--navbar-height));
-  background: #ffffff;
-  box-shadow: inset 0 4px 6px rgba(0,0,0,0.05), 3px 0 12px rgba(0,0,0,0.15); /* box-shadow: 3px 0 12px rgba(0,0,0,0.15); */
-  border-right: 1px solid rgba(0,0,0,0.06);
-  transition: left 0.35s ease;
-  z-index: 902;                       /* above backdrop, below navbar */
-  display: flex;
-  flex-direction: column;
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
-}
-.flux-chat-sidebar.show {
-  left: 0;
-}
-
-
-/* Sidebar header */
-.flux-chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  background: linear-gradient(90deg, #f8fafc, #ffffff);
-  position: relative;
-}
-
-/* Title */
-.flux-chat-title {
-  font-weight: 600;
-  font-size: 16px;
-  color: #1e293b;
-  margin: 0;
-  flex-grow: 1;
-}
-
-/* Sandbox button */
-.flux-chat-sandbox-btn {
-  background: #e2e8f0;
-  color: #1e293b;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-right: 6px;
-  transition: all 0.2s ease-in-out;
-}
-.flux-chat-sandbox-btn:hover {
-  background: #cbd5e1;
-}
-
-/* Close “✕” button */
-.flux-chat-close {
-  border: none;
-  background: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: #475569;
-  transition: color 0.15s ease;
-}
-.flux-chat-close:hover {
-  color: #0ea5e9;
-}
-
-
-
-/* History scroll area */
-.flux-chat-history {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  background: #f9fafb;
-}
-
-/* Footer input + send */
-.flux-chat-footer {
-  display: grid;
-  grid-template-columns: 1fr 100px;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid #e2e8f0;
-  background: #fff;
-}
-.flux-chat-input {
-  height: 42px;
-}
-.flux-chat-send {
-  height: 42px;
-  font-weight: 600;
-  border-radius: 6px;
-}
-
-/* Chat Markdown beautification */
-.flux-chat-markdown {
-  font-family: "Inter", "Segoe UI", sans-serif;
-  font-size: 0.97rem;
-  line-height: 1.5;
-  color: #1e293b;
-}
-
-.flux-chat-markdown strong {
-  color: #0b74de;
-}
-
-.flux-chat-markdown code {
-  background: #e2e8f0;
-  padding: 2px 5px;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.flux-chat-markdown ul,
-.flux-chat-markdown ol {
-  padding-left: 20px;
-  margin: 6px 0;
-}
-
-.flux-chat-markdown li {
-  margin-bottom: 4px;
-}
-
-/* ───────────────────────────────────────────────
-   Flux Assistant Sandbox Styling
-   ─────────────────────────────────────────────── */
-
+/***********************************************************
+ * NAMESPACE: .flux-assistant-sandbox
+ * No sandbox layout or bubble styles leak outside this box.
+ ***********************************************************/
+
+/* Wrapper */
 .flux-assistant-sandbox {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 1000px;
-  margin: 0 auto;
+    --flux-radius: 12px;
+    --flux-border: 1px solid #e2e8f0;
+    --flux-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    --flux-bg: #ffffff;
+    --flux-bg-soft: #f8fafc;
+    --flux-text: #0f172a;
+
+    background: var(--flux-bg);
+    border-radius: var(--flux-radius);
+    padding: 24px;
+    max-width: 1400px;
+    width: 95%;
+    margin: 0 auto;
+    color: var(--flux-text);
+    font-family: 'Inter','Helvetica Neue',sans-serif;
 }
 
-.flux-assistant-sandbox textarea {
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-family: "Inter", "Segoe UI", sans-serif;
-  font-size: 0.95rem;
+/* --------------------------------------------- */
+/* Chat window                                   */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-chat-window {
+    margin-top: 24px;
+    padding: 20px;
+    min-height: 420px;
+    background: var(--flux-bg-soft);
+    border: var(--flux-border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    max-height: calc(100vh - 260px);
 }
 
-.flux-assistant-sandbox .flux-chat-markdown {
-  background-color: #f8fafc;
-  color: #1e293b;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  border-radius: 8px;
-  padding: 16px;
-  overflow-x: auto;
+/* --------------------------------------------- */
+/* Bubbles                                       */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-bubble-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    margin: 12px 0;
+}
+.flux-assistant-sandbox .sandbox-bubble-row-user {
+    display: flex !important;
+    justify-content: flex-end !important;
 }
 
-.flux-assistant-sandbox .flux-chat-markdown code {
-  background: #e2e8f0;
-  padding: 2px 5px;
-  border-radius: 4px;
-  font-family: monospace;
+.flux-assistant-sandbox .sandbox-bubble {
+    max-width: 85%;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #1e293b;
+    box-shadow: var(--flux-shadow);
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
-/* Headings */
-.flux-assistant-sandbox .flux-chat-markdown h3,
-.flux-assistant-sandbox .flux-chat-markdown h2 {
-  color: #0f172a;
-  font-weight: 600;
-  margin-top: 1.2rem;
-  margin-bottom: 0.5rem;
+.flux-assistant-sandbox .sandbox-bubble-user {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
 }
 
-/* Tables */
-.flux-assistant-sandbox .flux-chat-markdown table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+.flux-assistant-sandbox .sandbox-bubble code {
+    background: #f1f5f9;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.9rem;
 }
 
-.flux-assistant-sandbox .flux-chat-markdown th,
-.flux-assistant-sandbox .flux-chat-markdown td {
-  border: 1px solid #cbd5e1;
-  padding: 6px 10px;
-  text-align: left;
+.flux-assistant-sandbox .sandbox-bubble pre code {
+    background: #f3f4f6;
+    padding: 12px;
+    border-radius: 10px;
+    display: block;
+    overflow-x: auto;
 }
 
-.flux-assistant-sandbox .flux-chat-markdown th {
-  background-color: #f1f5f9;
-  font-weight: 600;
+/* --------------------------------------------- */
+/* Image grid + thumbnails                       */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.flux-assistant-sandbox .sandbox-img-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.flux-assistant-sandbox .flux-plot-thumb {
+    max-width: 100%;
+    border-radius: 12px;
+    cursor: zoom-in;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.12);
 }
 
-/* Inline math and code blocks */
-.flux-assistant-sandbox .flux-chat-markdown pre code {
-  display: block;
-  background: #1e293b;
-  color: #f8fafc;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  overflow-x: auto;
+/* --------------------------------------------- */
+/* Explanation + reasoning                        */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-explanation-md {
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: var(--flux-border);
+    margin-top: 10px;
+}
+.flux-assistant-sandbox .sandbox-reasoning-container {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: var(--flux-border);
+}
+.flux-assistant-sandbox .sandbox-reasoning-container summary {
+    cursor: pointer;
+    font-weight: 600;
 }
 
-/* Loader styling */
-.spinner-border, .spinner-grow {
-  color: #0ea5e9 !important; /* Flux blue */
+/* --------------------------------------------- */
+/* Chips                                         */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-suggestion-row {
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
+.flux-assistant-sandbox .sandbox-suggestion {
+    background: #f1f5f9;
+    border: 1px solid #dce3ea;
+    color: #1e293b;
+    padding: 10px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.flux-assistant-sandbox .sandbox-suggestion:hover {
+    background: #e2ecff;
+}
+
+/* --------------------------------------------- */
+/* Input row                                     */
+/* --------------------------------------------- */
+.flux-assistant-sandbox #sandbox-input {
+    height: 48px;
+}
+.flux-assistant-sandbox #sandbox-send {
+    height: 48px;
+    font-weight: 600;
+}
+
+/* --------------------------------------------- */
+/* Scrollbar                                     */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-chat-window::-webkit-scrollbar { width: 6px; }
+.flux-assistant-sandbox .sandbox-chat-window::-webkit-scrollbar-thumb {
+    background-color: #94a3b8;
+    border-radius: 10px;
+}
+
+/* --------------------------------------------- */
+/* Thinking bar                                  */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .flux-thinking-bar {
+    position: absolute;
+    top: -12px;
+    left: 0;
+    height: 4px;
+    width: 100%;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.flux-assistant-sandbox .flux-thinking-bar.show { opacity: 1; }
+
+.flux-assistant-sandbox .flux-thinking-bar::before {
+    content: "";
+    position: absolute;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #0ea5e9, #3b82f6);
+    animation: flux-slide 1.3s infinite;
+    border-radius: 4px;
+}
+
+@keyframes flux-slide {
+  0% { left: -40%; }
+  50% { left: 60%; }
+  100% { left: 120%; }
+}
+
+/* TEMP DISABLE slide-out assistant */
+#chat-container,
+#chat-tab,
+#chat-backdrop,
+.flux-chat-sidebar,
+.flux-chat-header,
+.flux-chat-body,
+.flux-chat-input-row {
+    display: none !important;
+}
+
+/* typing bubble */
+.typing-bubble {
+    padding: 4px 12px;
+}
+
+.typing-dots {
+    width: 24px;
+    height: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.typing-dots::before,
+.typing-dots::after,
+.typing-dots div {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background-color: #1f2937;
+    border-radius: 50%;
+    display: inline-block;
+    animation: blink 1.4s infinite both;
+}
+
+.typing-dots div {
+    animation-delay: 0.2s;
+}
+
+.typing-dots::after {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0% { opacity: 0.2; }
+    20% { opacity: 1; }
+    100% { opacity: 0.2; }
+}
+

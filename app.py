@@ -20,8 +20,8 @@ from flux_notebooks.config import Settings
 # ╭─────────────────────────────────────────────────────────────╮
 # │  Flux Assistant (LLM chat integration)                      │
 # ╰─────────────────────────────────────────────────────────────╯
-from flux_notebooks.components.assistant_chat import render_chat
-from flux_notebooks.callbacks.assistant_callbacks import register_assistant_callbacks
+#from flux_notebooks.components.assistant_chat import render_chat
+from flux_notebooks.callbacks.assistant_callbacks import register_assistant_callbacks, render_chat
 
 
 

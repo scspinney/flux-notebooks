@@ -1,14 +1,12 @@
 # flux_notebooks/callbacks/assistant_callbacks.py
+
 from dash import Input, Output, State, html, ctx, dcc
 import dash_bootstrap_components as dbc
 import requests
-import os, json
+import os, json, ast
 
 LLM_API_URL = os.getenv("LLM_API_URL")
-
-# Auto-detect fallback if not explicitly set
 if not LLM_API_URL:
-    # If running inside Docker (detected via hostname), use llm:8081
     if os.path.exists("/.dockerenv"):
         LLM_API_URL = "http://llm:8081/chat"
     else:
@@ -17,12 +15,110 @@ if not LLM_API_URL:
 print(f"[Flux-Dash] Using LLM API at: {LLM_API_URL}")
 
 
-def register_assistant_callbacks(app):
-    """Attach callbacks for sidebar toggle and LLM chat behavior."""
+# -----------------------------
+# Small helpers
+# -----------------------------
 
-    # ───────────────────────────────────────────────
-    # Sidebar open/close logic
-    # ───────────────────────────────────────────────
+def _is_placeholder(node):
+    """
+    Robustly detect a placeholder bubble.
+    Dash serializes HTML, so we inspect className instead of id.
+    """
+    try:
+        cls = getattr(node, "className", "") or ""
+        return ("assistant" in cls) and ("placeholder" in cls)
+    except Exception:
+        return False
+
+def _toolresult_to_markdown(raw):
+    """
+    Convert tool outputs to readable Markdown.
+
+    Supports:
+    - list[dict]  → Markdown table
+    - dict        → key/value table
+    - schema unwrap: if dict has keys {"name","type"}
+    - generic JSON fallback
+
+    Returns a string that is ALWAYS valid Markdown.
+    """
+    # Attempt JSON load if it's a str
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        return f"```\n{raw}\n```"
+
+    # 1) LIST OF DICTS → TABLE
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        cols = list(data[0].keys())
+        header = "| " + " | ".join(cols) + " |\n"
+        sep = "| " + " | ".join(["---"] * len(cols)) + " |\n"
+        rows = [
+            "| " + " | ".join(str(item.get(c, "")) for c in cols) + " |"
+            for item in data
+        ]
+        return header + sep + "\n".join(rows)
+
+    # 2) DICT → Key/Value Table
+    if isinstance(data, dict):
+        # Special case: schema-like dict
+        if set(data.keys()) == {"name", "type"}:
+            return f"| Name | Type |\n| --- | --- |\n| {data['name']} | {data['type']} |"
+
+        # Generic dict
+        header = "| Key | Value |\n| --- | --- |\n"
+        rows = []
+        for k, v in data.items():
+            # Render nested dicts or lists as JSON
+            if isinstance(v, (dict, list)):
+                pretty = json.dumps(v, indent=2, ensure_ascii=False)
+                rows.append(f"| {k} | `{pretty}` |")
+            else:
+                rows.append(f"| {k} | {v} |")
+        return header + "\n".join(rows)
+
+    # 3) Fallback: raw pretty JSON
+    try:
+        pretty = json.dumps(data, indent=2, ensure_ascii=False)
+        return f"```json\n{pretty}\n```"
+    except Exception:
+        return str(data)
+
+
+
+def _bubble(role, content, is_image=False, placeholder=False):
+    wrapper = "flux-chat-bubble user" if role == "user" else "flux-chat-bubble assistant"
+    label = html.Span("" if role == "user" else "🤖 Flux:", className="bubble-label")
+
+    if placeholder:
+        return html.Div(
+            [label, html.Span(className="typing-dots")],
+            className=f"{wrapper} placeholder",
+            id="assistant-placeholder",
+        )
+
+    if is_image:
+        return html.Div(
+            [label, html.Img(src=f"data:image/png;base64,{content}")],
+            className=wrapper,
+        )
+
+    if isinstance(content, dict):
+        try:
+            content = "```json\n" + json.dumps(content, indent=2) + "\n```"
+        except Exception:
+            content = str(content)
+
+    return html.Div(
+        [label, dcc.Markdown(str(content), className="flux-chat-markdown")],
+        className=wrapper,
+    )
+
+def register_assistant_callbacks(app):
+
+    # -----------------------------------------------
+    # Slide-in chat sidebar
+    # -----------------------------------------------
     @app.callback(
         Output("chat-sidebar", "className"),
         Output("chat-backdrop", "className"),
@@ -46,131 +142,146 @@ def register_assistant_callbacks(app):
 
         return current, "flux-chat-backdrop show" if is_open else "flux-chat-backdrop"
 
-    # ───────────────────────────────────────────────
-    # Chat interaction: send → LLM → receive
-    # ───────────────────────────────────────────────
+    # -----------------------------------------------
+    # Main chat callback (with placeholder typing)
+    # -----------------------------------------------
     @app.callback(
         Output("chat-history", "children"),
         Input("chat-send-btn", "n_clicks"),
         State("chat-input", "value"),
         State("chat-history", "children"),
+        State("model-selector", "value"),
         prevent_initial_call=True,
     )
-    def send_message(n_clicks, message, history):
+    def send_message(n_clicks, message, history, model):
         if not message:
             return history
 
+        model = model or "gpt-4o-nano"
         history = history or []
 
-        # Helper: consistent chat bubble styling
-        def bubble(role, content, color=None, bg=None, is_image=False):
-            base_style = {
-                "margin": "8px 0",
-                "padding": "10px 12px",
-                "borderRadius": "10px",
-                "whiteSpace": "pre-wrap",
-                "fontFamily": "'Inter', 'Segoe UI', sans-serif",
-                "fontSize": "0.95rem",
-                "lineHeight": "1.5",
-            }
-            if bg:
-                base_style["backgroundColor"] = bg
-            if color:
-                base_style["color"] = color
+        # 1. Immediately render user bubble + assistant placeholder
+        history.append(_bubble("user", message))
+        history.append(_bubble("assistant", "", placeholder=True))
 
-            prefix = "🧑 You:" if role == "user" else "🤖 Flux:"
-
-            if is_image:
-                return html.Div(
-                    [
-                        html.Strong(prefix),
-                        html.Img(
-                            src=f"data:image/png;base64,{content}",
-                            style={
-                                "maxWidth": "100%",
-                                "borderRadius": "10px",
-                                "marginTop": "8px",
-                                "boxShadow": "0 1px 4px rgba(0,0,0,0.1)",
-                            },
-                        ),
-                    ],
-                    style=base_style,
-                )
-
-            return html.Div(
-                [html.Strong(prefix + " "), dcc.Markdown(str(content))],
-                style=base_style,
-            )
-
-        # Add user message
-        history.append(bubble("user", message, color="#0f172a", bg="#f8fafc"))
-
-        # Add temporary spinner
-        spinner = html.Div(
-            dcc.Loading(type="dot", color="#0b74de"),
-            style={"margin": "8px 0", "textAlign": "center"},
-        )
-        history.append(spinner)
-
-        app._cached_layout = app.layout
-
-        # ───────────────────────────────────────────────
-        # Send query to LLM
-        # ───────────────────────────────────────────────
+        # 2. Call backend
         try:
-            r = requests.post(LLM_API_URL, json={"message": message}, timeout=90)
-            r.raise_for_status()
-            data = r.json()
-            print(f"[DEBUG] Assistant returned keys: {list(data.keys())}")
-
-            # Detect direct image response
-            if "image_base64" in data:
-                reply = html.Img(
-                    src=f"data:image/png;base64,{data['image_base64']}",
-                    style={
-                        "maxWidth": "100%",
-                        "borderRadius": "12px",
-                        "boxShadow": "0 2px 6px rgba(0,0,0,0.25)",
-                        "marginTop": "10px",
-                    },
-                )
-            else:
-                reply = data.get("response", data.get("detail", "No reply."))
-
-        except requests.exceptions.Timeout:
-            reply = "⚠️ The assistant took too long to respond."
+            resp = requests.post(
+                LLM_API_URL,
+                json={"message": message, "model": model},
+                timeout=90,
+            )
+            resp.raise_for_status()
+            data = resp.json()
         except Exception as e:
-            reply = f"⚠️ Error contacting assistant: {e}"
+            # Replace placeholder with error text
+            new_hist = []
+            placeholder_seen = False
 
-        # Remove spinner
-        history = [
-            h
-            for h in history
-            if not isinstance(h, html.Div)
-            or not h.children
-            or not isinstance(h.children[0], dcc.Loading)
-        ]
+            for node in history:
+                if _is_placeholder(node) and not placeholder_seen:
+                    new_hist.append(
+                        _bubble("assistant", f"⚠️ Error contacting assistant: {e}")
+                    )
+                    placeholder_seen = True
+                else:
+                    new_hist.append(node)
 
-        # ───────────────────────────────────────────────
-        # Render assistant reply
-        # ───────────────────────────────────────────────
-        if isinstance(reply, html.Img):
-            history.append(bubble("assistant", data["image_base64"], is_image=True))
-        elif isinstance(reply, dict) and "response" in reply:
-            history.append(bubble("assistant", reply["response"], color="#0b74de", bg="#f0f6ff"))
-        else:
-            history.append(bubble("assistant", str(reply), color="#0b74de", bg="#f0f6ff"))
+            return new_hist
 
-        # 🧩 Sandbox-safe fallback — if sandbox expects components not wrapped in chat bubbles
-        if isinstance(reply, dict) and "image_base64" in reply:
-            return [html.Img(
-                src=f"data:image/png;base64,{reply['image_base64']}",
-                style={
-                    "maxWidth": "100%",
-                    "borderRadius": "10px",
-                    "marginTop": "8px"
-                },
-            )]
+        # 3. Replace placeholder based on server response type
+        new_hist = []
+        placeholder_seen = False
 
-        return history
+        for node in history:
+            if _is_placeholder(node) and not placeholder_seen:
 
+                # ---- IMAGE ----
+                if data.get("type") == "image":
+                    new_hist.append(
+                        _bubble(
+                            "assistant",
+                            data.get("image_base64"),
+                            is_image=True
+                        )
+                    )
+
+                # ---- TOOL RESULT ----
+                elif data.get("type") == "tool_result":
+                    pretty = _toolresult_to_markdown(data.get("content", ""))
+                    new_hist.append(_bubble("assistant", pretty))
+
+                # ---- NORMAL TEXT ----
+                else:
+                    new_hist.append(
+                        _bubble("assistant", data.get("content", "No reply."))
+                    )
+
+                placeholder_seen = True
+                continue
+
+            new_hist.append(node)
+
+        return new_hist
+
+
+
+# -----------------------------
+# Render chat widget
+# -----------------------------
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+def render_chat():
+    model_selector = dcc.Dropdown(
+        id="model-selector",
+        options=[
+            {"label": "GPT-5", "value": "gpt-5"},
+            {"label": "GPT-4o", "value": "gpt-4o"},
+            {"label": "GPT-4o-mini", "value": "gpt-4o-mini"},
+            {"label": "GPT-4o-nano", "value": "gpt-4o-nano"},
+        ],
+        value="gpt-5",
+        clearable=False,
+        className="flux-model-selector",
+    )
+
+    return html.Div(
+        [
+            dcc.Store(id="chat-message-store", data=[]),
+            html.Div(id="chat-backdrop", className="flux-chat-backdrop"),
+
+            html.Div("Flux Assistant", id="chat-tab", n_clicks=0,
+                     className="flux-chat-tab", title="Open Flux Assistant"),
+
+            html.Div(
+                id="chat-sidebar",
+                className="flux-chat-sidebar",
+                children=[
+                    html.Div(
+                        [
+                            html.H4("🤖 Flux Assistant", className="flux-chat-title mb-0"),
+                            html.Div(model_selector, style={"width": "170px", "marginRight": "12px"}),
+                            dbc.Button("🧠 Sandbox", id="open-sandbox",
+                                       href="/assistant_sandbox", color="secondary",
+                                       size="sm", className="flux-chat-sandbox-btn me-2"),
+                            html.Button("✕", id="close-chat-btn", className="flux-chat-close"),
+                        ],
+                        className="flux-chat-header d-flex align-items-center justify-content-between pe-2 ps-3",
+                    ),
+                    html.Div(id="chat-history", className="flux-chat-history"),
+                    html.Div(
+                        [
+                            dbc.Input(id="chat-input", placeholder="Ask something…",
+                                      type="text", debounce=True,
+                                      className="me-2 flex-grow-1 flux-chat-input"),
+                            dbc.Button("Send", id="chat-send-btn",
+                                       color="primary", className="flux-chat-send"),
+                        ],
+                        className="flux-chat-footer d-flex align-items-center",
+                    ),
+                ],
+            ),
+        ],
+        style={"position": "relative", "zIndex": "1"},
+    )
