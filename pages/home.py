@@ -12,6 +12,7 @@ from flux_notebooks.redcap.summarize_targets import summarize_modalities
 from flux_notebooks.bids.summarize_bids import summarize_bids
 from flux_notebooks.freesurfer.summarize_freesurfer import summarize_freesurfer
 from flux_notebooks.theme import SITE_COLORS
+from flux_notebooks.redcap.summarize_redcap import summarize_redcap
 
 dash.register_page(__name__, path="/", name="Home")
 
@@ -99,6 +100,73 @@ def modality_icon_src(modality: str) -> str:
         "DWI": "/assets/icons/dwi.jpeg",          # DWI icon
     }
     return icon_map.get(modality, "/assets/icons/t1w.png")
+
+
+# ---------------------------------------------------------------------
+# REDCap helpers (reused from redcap page, simplified)
+# ---------------------------------------------------------------------
+def _height_to_css(height):
+    if height is None:
+        return "calc(100vh - 260px)"
+    if isinstance(height, int):
+        return f"{height}px"
+    return str(height)
+
+
+def redcap_fig_or_msg(figs, key: str, msg: str, height: int | str | None = 400, style_extra=None):
+    fig = figs.get(key)
+    style = {"height": _height_to_css(height)}
+    if style_extra:
+        style.update(style_extra)
+    if fig is not None and getattr(fig, "data", None):
+        return dcc.Graph(
+            figure=fig,
+            style=style,
+            config={
+                "displaylogo": False,
+                "modeBarButtonsToRemove": [
+                    "lasso2d",
+                    "select2d",
+                    "autoScale2d",
+                    "toggleSpikelines",
+                    "zoomIn2d",
+                    "zoomOut2d",
+                    "hoverClosestCartesian",
+                ],
+                "toImageButtonOptions": {
+                    "format": "png",
+                    "filename": key.replace(" ", "_"),
+                    "scale": 2,
+                },
+                "displayModeBar": True,
+                "responsive": True,
+            },
+        )
+    return html.Div(
+        msg,
+        style={
+            **style,
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "color": "#6b7280",
+            "background": "#f8fafc",
+            "border": "1px dashed #e5e7eb",
+            "borderRadius": "10px",
+        },
+    )
+
+
+def redcap_card(children, style_extra=None):
+    base = {
+        "background": "white",
+        "padding": "16px",
+        "borderRadius": "12px",
+        "border": "1px solid #e5e7eb",
+    }
+    if style_extra:
+        base.update(style_extra)
+    return html.Div(children, className="shadow-sm", style=base)
 
 
 
@@ -315,6 +383,15 @@ def layout():
     participants_tsv = bids_root / "participants.tsv"
     session_summary = summarize_sessions(bids_root, participants_tsv)
     last_updated = datetime.fromtimestamp(dataset_root.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    # REDCap data (reuse from redcap page)
+    redcap_root = Path(os.environ.get("FLUX_REDCAP_ROOT", "data/redcap")).resolve()
+    try:
+        redcap_summary = summarize_redcap(redcap_root)
+        redcap_figs = redcap_summary.get("figures", {}) or {}
+        redcap_error = None
+    except Exception as e:
+        redcap_figs = {}
+        redcap_error = f"Failed to summarize REDCap data at {redcap_root}: {e}"
 
     # Timepoint tabs (recruitment)
     def make_timepoint_tab(label, key):
@@ -483,21 +560,112 @@ def layout():
                      children=[html.H4("Study Recruitment by Timepoint", style={"marginBottom": "15px"}),
                                timepoint_tabs]),
 
-            html.Div(style={"textAlign": "center", "marginTop": "25px"},
-                     children=[
-                         dbc.Button("📊 Detailed Recruitment Info", href="/redcap", color="primary",
-                                    style={"fontWeight": "600", "fontSize": "16px",
-                                           "padding": "10px 24px", "borderRadius": "10px",
-                                           "backgroundColor": "#2563eb", "border": "none"}),
-                         html.Div("View full demographic breakdowns, equity metrics, and data quality trends from REDCap.",
-                                  style={"marginTop": "10px", "color": "#6b7280", "fontSize": "16px"})]),
-
             html.Div(style={"marginTop": "50px", "textAlign": "center"},
                      children=[html.H3("Imaging Modality Coverage by Site", style={"marginBottom": "5px"}),
                                html.P("Each card shows how many subjects at each site have each modality for the selected timepoint.",
                                       style={"color": "#6b7280", "fontSize": "16px",
                                              "marginBottom": "25px", "maxWidth": "800px", "margin": "0 auto"}),
                                modality_tabs]),
+
+            # -----------------------------------------------------------------
+            # REDCap summary (embedded)
+            # -----------------------------------------------------------------
+            html.Div(
+                style={"marginTop": "60px", "textAlign": "center"},
+                children=[
+                    html.H3("REDCap Summary", style={"marginBottom": "6px"}),
+                    html.P(
+                        "Recruitment, equity, timelines, and mental-health insights from REDCap.",
+                        style={"color": "#6b7280", "fontSize": "15px", "marginBottom": "18px"},
+                    ),
+                    *( [redcap_card(html.Div(redcap_error, style={"color": "#b91c1c"}))] if redcap_error else [] ),
+                    dcc.Tabs(
+                        colors={"border": "#e5e7eb", "primary": "#2563eb", "background": "#ffffff"},
+                        children=[
+                            dcc.Tab(
+                                label="Recruitment & Targets",
+                                children=[
+                                    redcap_card(
+                                        [
+                                            html.H4("Observed vs Target — Age × Sex (per site)", style={"marginTop": 0}),
+                                            redcap_fig_or_msg(redcap_figs, "overlay_age_sex", "Targets not found or observed Sex×Age empty", height=650),
+                                        ]
+                                    ),
+                                    redcap_card(
+                                        [
+                                            html.H4("Observed vs Target — Ethnicity totals (per site)", style={"marginTop": 0}),
+                                            redcap_fig_or_msg(redcap_figs, "overlay_ethnicity_totals", "No totals comparison available", height=650),
+                                        ],
+                                        style_extra={"marginTop": "1rem"},
+                                    ),
+                                    redcap_card(
+                                        [
+                                            html.H4("Deep-dive: Observed vs Target — Age × Ethnicity", style={"marginTop": 0}),
+                                            redcap_fig_or_msg(
+                                                redcap_figs,
+                                                "overlay_age_ethnicity",
+                                                "Targets not found or observed Ethnicity×Age empty",
+                                                height=900,
+                                                style_extra={"overflowX": "auto"},
+                                            ),
+                                        ],
+                                        style_extra={"marginTop": "1rem"},
+                                    ),
+                                ],
+                            ),
+                            dcc.Tab(
+                                label="Equity & Representation",
+                                children=[
+                                    html.Div(
+                                        style={
+                                            "display": "grid",
+                                            "gridTemplateColumns": "1fr",
+                                            "gap": "24px",
+                                        },
+                                        children=[
+                                            redcap_card([html.H4("Age groups by site (baseline)", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "age", "No age data available", height=480)]),
+                                            redcap_card([html.H4("Sex distribution by site", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "sex", "No sex data available", height=480)]),
+                                            redcap_card([html.H4("Gender identity by site", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "gender", "No gender data available", height=480)]),
+                                            redcap_card([html.H4("Ethnicity (all labels)", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "ethnicity_full", "No ethnicity data available", height=520)]),
+                                            redcap_card([html.H4("Ethnicity (White / Non-white) by site", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "ethnicity_white_nonwhite", "No white/non-white data available", height=480)]),
+                                            redcap_card([html.H4("Household income (baseline)", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "income", "No income data available", height=480)]),
+                                        ],
+                                    )
+                                ],
+                            ),
+                            dcc.Tab(
+                                label="Timeline & Data Quality",
+                                children=[
+                                    redcap_card([html.H4("Baseline MRI visits by site", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "mri_timeline", "No MRI timeline available", height=440)]),
+                                    redcap_card([html.H4("Missing counts per panel", style={"marginTop": 0}), redcap_fig_or_msg(redcap_figs, "missing_counts", "No NA summary available", height=440)], style_extra={"marginTop": "1rem"}),
+                                ],
+                            ),
+                            dcc.Tab(
+                                label="Mental Health Insights",
+                                children=[
+                                    redcap_card(
+                                        [
+                                            html.H4("Diagnoses (counts)", style={"marginTop": 0}),
+                                            redcap_fig_or_msg(redcap_figs, "mh_bar", "No CFQ diagnosis variables present", height=360),
+                                            html.Div(style={"height": "8px"}),
+                                            redcap_fig_or_msg(redcap_figs, "mh_heatmap_with_nodx", "Heatmap unavailable", height=400),
+                                        ]
+                                    ),
+                                    redcap_card(
+                                        [
+                                            html.H4("Correlations & Co-occurrence", style={"marginTop": 0}),
+                                            redcap_fig_or_msg(redcap_figs, "mh_corr", "Correlation matrix unavailable", height=400),
+                                            html.Div(style={"height": "8px"}),
+                                            redcap_fig_or_msg(redcap_figs, "mh_cooccurrence", "Co-occurrence matrix unavailable", height=400),
+                                        ],
+                                        style_extra={"marginTop": "1rem"},
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
 
             make_info_panel(dataset_root, last_updated),
 

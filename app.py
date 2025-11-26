@@ -49,6 +49,17 @@ def build_navbar():
     """Unified top navigation bar using Bootstrap."""
     HIDDEN_PAGES = {"Flux Assistant", "MRIQC Detail", "fMRIPrep Detail", "FreeSurfer Summary"}
     pages = [p for p in dash.page_registry.values() if p["name"] not in HIDDEN_PAGES]
+    desired_order = [
+        "Home",
+        "BIDS Summary",
+        "MRIQC Reports",
+        "fMRIPrep Reports",
+        "REDCap Summary",
+        "Subject Detail",
+        "Flux Assistant Sandbox",
+    ]
+    order_index = {name: i for i, name in enumerate(desired_order)}
+    pages = sorted(pages, key=lambda p: order_index.get(p["name"], len(desired_order)))
     
     nav_links = [
         dbc.NavItem(dbc.NavLink(page["name"], href=page["path"], active="exact"))
@@ -300,5 +311,3 @@ register_assistant_callbacks(app)
 if __name__ == "__main__":
     print("\n🚀 Launching Flux Dashboards with navbar...")
     app.run(host="0.0.0.0", port=8050, debug=False)
-
-
