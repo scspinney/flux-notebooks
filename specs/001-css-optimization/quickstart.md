@@ -344,15 +344,193 @@ When refactoring a page, verify:
 - [ ] Commit message describes change
 - [ ] data-model.md updated with change tracking
 
+### Maintenance Guide (Post-Refactoring)
+
+#### Helper Module Organization
+
+All helper modules live in `src/flux_notebooks/pages/` and follow this pattern:
+
+**Module Naming**: `<page_name>_helpers.py`
+- `assistant_helpers.py` → Used by `pages/assistant_sandbox.py`
+- `mriqc_helpers.py` → Used by `pages/mriqc.py` + `pages/mriqc_detail.py`
+- `subject_detail_helpers.py` → Used by `pages/subject_detail.py`
+
+**Current Helper Modules** (as of Phase 4 completion):
+1. `assistant_helpers.py` (418 lines): 9 functions for assistant sandbox
+2. `mriqc_helpers.py` (116 lines): 4 functions for MRIQC pages
+3. `redcap_helpers.py` (181 lines): 5 functions + 2 style dicts
+4. `home_helpers.py` (436 lines): 8 functions for home page
+5. `bids_helpers.py` (251 lines): 2 functions for BIDS browser
+6. `fmriprep_helpers.py` (74 lines): 3 functions for fMRIPrep pages
+7. `subject_detail_helpers.py` (341 lines): 4 functions for subject detail
+
+#### Adding New Helper Functions
+
+When you need to add a helper to an existing page:
+
+1. **Determine if it's shared or page-specific**:
+   - Shared → Consider adding to a common helper module or `src/flux_notebooks/lib/`
+   - Page-specific → Add to existing `<page>_helpers.py`
+
+2. **Add the function with proper docstring**:
+   ```python
+   def new_helper_function(param1: str, param2: int) -> dict:
+       """Brief description of what this function does.
+       
+       Args:
+           param1: Description of param1
+           param2: Description of param2
+           
+       Returns:
+           Description of return value
+       """
+       # Implementation
+   ```
+
+3. **Update imports in the page module**:
+   ```python
+   from flux_notebooks.pages.your_helpers import (
+       existing_helper,
+       new_helper_function,  # Add this
+   )
+   ```
+
+4. **Test and commit**:
+   ```bash
+   python -m py_compile src/flux_notebooks/pages/your_helpers.py
+   python -m py_compile pages/your_page.py
+   git add src/flux_notebooks/pages/your_helpers.py pages/your_page.py
+   git commit -m "feat(your_page): Add new_helper_function"
+   ```
+
+#### Modifying Existing Helpers
+
+When updating a helper function:
+
+1. **Check usage across pages** (helpers may be shared):
+   ```bash
+   grep -r "helper_name" pages/
+   ```
+
+2. **Update function signature carefully**:
+   - If adding parameters, provide defaults to maintain backward compatibility
+   - If changing behavior, update all calling pages
+
+3. **Update docstring** to reflect changes
+
+4. **Validate all affected pages**:
+   ```bash
+   for f in pages/*.py; do python -m py_compile "$f"; done
+   ```
+
+#### CSS Maintenance
+
+**Adding Styles to a Page**:
+
+1. **Determine page namespace** (e.g., `mriqc-`, `assistant-`, `bids-`)
+2. **Add to page-specific CSS file** (e.g., `assets/mriqc.css`)
+3. **Use namespaced classes**:
+   ```css
+   .mriqc-new-component {
+       /* styles */
+   }
+   ```
+4. **Reference in component**:
+   ```python
+   html.Div(..., className="mriqc-new-component")
+   ```
+
+**Adding Shared Styles**:
+
+If a style is used by 2+ pages:
+1. Add to `assets/common.css`
+2. Use generic names (no namespace prefix)
+3. Document which pages use it in a comment
+
+**CSS File Structure**:
+```
+assets/
+├── common.css                    # Shared styles (floating-info-panel, etc.)
+├── assistant_sandbox.css         # Assistant page (252 lines)
+├── mriqc.css                     # MRIQC pages (placeholder)
+├── redcap.css                    # RedCap page (placeholder)
+├── home.css                      # Home page (placeholder)
+├── bids.css                      # BIDS browser (placeholder)
+├── fmriprep.css                  # fMRIPrep pages (placeholder)
+├── freesurfer.css                # FreeSurfer page (placeholder)
+├── subject.css                   # Subject detail (placeholder)
+└── custom.css                    # Legacy styles (14 lines with migration notes)
+```
+
+#### Rollback Procedure
+
+If issues arise, you can roll back changes:
+
+**Option 1: Git Revert** (recommended for specific pages)
+```bash
+# List recent commits
+git log --oneline
+
+# Revert specific commit
+git revert <commit-sha>
+```
+
+**Option 2: Feature Flag** (for CSS only)
+```bash
+# Revert to old CSS loading (not implemented yet)
+FLUX_PAGE_CSS=legacy make run
+```
+
+**Option 3: Full Rollback** (nuclear option)
+```bash
+# Reset to pre-refactoring state
+git checkout main
+git branch -D 001-css-optimization
+```
+
+#### Performance Monitoring
+
+Track page load performance:
+
+1. **Browser DevTools Network Tab**:
+   - Measure CSS file sizes
+   - Check number of CSS requests per page
+   - Verify only relevant CSS files load
+
+2. **Expected Results**:
+   - Custom CSS: 313→14 lines (95% reduction)
+   - Page loads: 30% faster (target)
+   - Network: Fewer CSS bytes transferred per page
+
+3. **Baseline Metrics** (from validation):
+   - Total pages/ LOC: 3,994→2,066 (48% reduction)
+   - CSS reduction: 95% (exceeds 50% target)
+   - Helper modules: 7 modules, 1,817 total lines
+
+#### Troubleshooting Common Issues
+
+**Issue**: `ImportError: cannot import name 'helper_function'`
+- **Solution**: Check that helper function exists in helper module and is properly imported
+
+**Issue**: CSS styles not applying
+- **Solution**: Verify class name uses correct namespace prefix, check browser DevTools for CSS file loading
+
+**Issue**: Page takes long to load
+- **Solution**: Check if large data processing happens in layout function (should be in helper or callback)
+
+**Issue**: `TypeError` when calling helper function
+- **Solution**: Check that all required parameters are passed explicitly (data_root, figs, site_colors, etc.)
+
 ### Getting Help
 
 **Issues or questions?**
 
-1. Check this quickstart guide first
+1. Check this quickstart guide first (especially Maintenance Guide section)
 2. Review `data-model.md` for entity relationships
 3. Check `research.md` for design decisions and rationale
-4. Review commit history: `git log --oneline specs/001-css-optimization/`
-5. Open an issue with:
+4. Review validation results in `validation-report.md`
+5. Review commit history: `git log --oneline 001-css-optimization`
+6. Open an issue with:
    - What you're trying to do
    - What's not working
    - Error messages or screenshots
