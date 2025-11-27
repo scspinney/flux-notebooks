@@ -7,6 +7,14 @@ from dash import html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 
 from flux_notebooks.redcap.summarize_redcap import summarize_redcap
+from flux_notebooks.pages.redcap_helpers import (
+    fig_or_msg,
+    card,
+    kpi,
+    fmt_pct,
+    GRID_STYLES,
+    TAB_STYLES,
+)
 
 dash.register_page(__name__, path="/redcap", name="REDCap Summary")
 
@@ -23,116 +31,13 @@ except Exception as e:
 else:
     _load_error = None
 
-
-# ── Small helpers ─────────────────────────────────────────────────────────────
-def _height_to_css(height):
-    if height is None:
-        return "calc(100vh - 260px)"
-    if isinstance(height, int):
-        return f"{height}px"
-    return str(height)
-
-
-def fig_or_msg(key: str, msg: str, height: int | str | None = 400, style_extra=None):
-    """
-    Render a figure if present and non-empty; otherwise show a gentle placeholder.
-    """
-    fig = FIGS.get(key)
-    style = {"height": _height_to_css(height)}
-    if style_extra:
-        style.update(style_extra)
-    if fig is not None and getattr(fig, "data", None):  # non-empty figure
-        # Smaller mode bar, no logo; figures produced upstream should already be plotly_white
-        return dcc.Graph(
-                    figure=fig,
-                    style=style,
-                    config={
-                        "displaylogo": False,
-                        "modeBarButtonsToRemove": [
-                            "lasso2d", "select2d", "autoScale2d", "toggleSpikelines",
-                            # 👇 remove "toImage" from here so the download PNG button appears
-                            "zoomIn2d", "zoomOut2d", "hoverClosestCartesian",
-                        ],
-                        "toImageButtonOptions": {
-                            "format": "png",
-                            "filename": key.replace(" ", "_"),
-                            "scale": 2,          # higher = better quality
-                            "width": None,       # defaults to graph width
-                            "height": None,      # defaults to graph height
-                        },
-                        "displayModeBar": True,
-                        "responsive": True,
-                    },
-                )
-
-    return html.Div(
-        msg,
-        style={
-            **style,
-            "display": "flex",
-            "alignItems": "center",
-            "justifyContent": "center",
-            "color": "#6b7280",           # slate-500
-            "background": "#f8fafc",      # slate-50
-            "border": "1px dashed #e5e7eb",
-            "borderRadius": "10px",
-        },
-    )
-
-
-def card(children, style_extra=None):
-    base = {
-        "background": "white",
-        "padding": "16px",
-        "borderRadius": "12px",
-        "border": "1px solid #e5e7eb",
-    }
-    if style_extra:
-        base.update(style_extra)
-    return html.Div(children, className="shadow-sm", style=base)
-
-
-# Responsive grids
-grid1 = {"display": "grid", "gridTemplateColumns": "1fr", "gap": "16px"}
-grid2 = {"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px"}
-grid3 = {"display": "grid", "gridTemplateColumns": "repeat(3, 1fr)", "gap": "16px"}
-grid_wrap = {
-    "display": "grid",
-    "gap": "16px",
-    "gridTemplateColumns": "repeat(auto-fit, minmax(280px, 1fr))",
-}
-
-# Tabs styles
-tab_style = {
-    "padding": "10px 14px",
-    "fontWeight": 600,
-    "color": "#111827",
-    "background": "#f3f4f6",
-    "border": "1px solid #e5e7eb",
-    "borderBottom": "none",
-    "borderRadius": "10px 10px 0 0",
-}
-tab_selected_style = {**tab_style, "background": "#ffffff", "borderTop": "3px solid #2563eb"}
-
-# ── KPI helpers ───────────────────────────────────────────────────────────────
-def _kpi(value, label, sub=None):
-    return card(
-        [
-            html.Div(f"{value}", style={"fontSize": "28px", "fontWeight": 800}),
-            html.Div(label, style={"color": "#6b7280", "fontSize": "13px"}),
-            html.Div(sub or "", style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "4px"}),
-        ],
-        style_extra={"padding": "14px 16px"},
-    )
-
-
-def _fmt_pct(num, den):
-    try:
-        if den <= 0:
-            return "—"
-        return f"{(100.0 * num / den):.0f}%"
-    except Exception:
-        return "—"
+# Unpack styles for convenience
+grid1 = GRID_STYLES["grid1"]
+grid2 = GRID_STYLES["grid2"]
+grid3 = GRID_STYLES["grid3"]
+grid_wrap = GRID_STYLES["grid_wrap"]
+tab_style = TAB_STYLES["default"]
+tab_selected_style = TAB_STYLES["selected"]
 
 
 # Compute a few top-line KPIs from COUNTS / COUNTS_NA if available
@@ -258,9 +163,7 @@ layout = html.Div(
                                 card(
                                     [
                                         html.H4("Observed vs Target — Age × Sex (per site)", style={"marginTop": 0}),
-                                        fig_or_msg(
-                                            "overlay_age_sex",
-                                            "Targets not found or observed Sex×Age empty",
+                                        fig_or_msg("overlay_age_sex", "Targets not found or observed Sex×Age empty", FIGS, FIGS,
                                             height=650,
                                         ),
                                     ]
@@ -268,9 +171,7 @@ layout = html.Div(
                                 card(
                                     [
                                         html.H4("Observed vs Target — Ethnicity totals (per site)", style={"marginTop": 0}),
-                                        fig_or_msg(
-                                            "overlay_ethnicity_totals",
-                                            "No totals comparison available",
+                                        fig_or_msg("overlay_ethnicity_totals", "No totals comparison available", FIGS, FIGS,
                                             height=650,
                                         ),
                                     ],
@@ -313,9 +214,7 @@ layout = html.Div(
                                     is_open=False,
                                     children=[
                                         html.Div(style={"height": "10px"}),
-                                        fig_or_msg(
-                                            "overlay_age_ethnicity",
-                                            "Targets not found or observed Ethnicity×Age empty",
+                                        fig_or_msg("overlay_age_ethnicity", "Targets not found or observed Ethnicity×Age empty", FIGS, FIGS,
                                             height=900,
                                             style_extra={"overflowX": "auto"},
                                         ),
@@ -336,25 +235,25 @@ layout = html.Div(
                             style=grid1,
                             children=[
                                 card(
-                                    [html.H4("Age groups by site (baseline)", style={"marginTop": 0}), fig_or_msg("age", "No age data available", height=420)]
+                                    [html.H4("Age groups by site (baseline)", style={"marginTop": 0}), fig_or_msg("age", "No age data available", FIGS, FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Sex distribution by site", style={"marginTop": 0}), fig_or_msg("sex", "No sex data available", height=420)]
+                                    [html.H4("Sex distribution by site", style={"marginTop": 0}), fig_or_msg("sex", "No sex data available", FIGS, FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Gender identity by site", style={"marginTop": 0}), fig_or_msg("gender", "No gender data available", height=420)]
+                                    [html.H4("Gender identity by site", style={"marginTop": 0}), fig_or_msg("gender", "No gender data available", FIGS, FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Ethnicity (all labels)", style={"marginTop": 0}), fig_or_msg("ethnicity_full", "No ethnicity data available", height=420)]
+                                    [html.H4("Ethnicity (all labels)", style={"marginTop": 0}), fig_or_msg("ethnicity_full", "No ethnicity data available", FIGS, FIGS, height=420)]
                                 ),
                                 card(
                                     [
                                         html.H4("Ethnicity (White / Non-white) by site", style={"marginTop": 0}),
-                                        fig_or_msg("ethnicity_white_nonwhite", "No white/non-white data available", height=420),
+                                        fig_or_msg("ethnicity_white_nonwhite", "No white/non-white data available", FIGS, FIGS, height=420),
                                     ]
                                 ),
                                 card(
-                                    [html.H4("Household income (baseline)", style={"marginTop": 0}), fig_or_msg("income", "No income data available", height=420)]
+                                    [html.H4("Household income (baseline)", style={"marginTop": 0}), fig_or_msg("income", "No income data available", FIGS, FIGS, height=420)]
                                 ),
                             ],
                         ),
@@ -371,10 +270,10 @@ layout = html.Div(
                             style=grid1,
                             children=[
                                 card(
-                                    [html.H4("Baseline MRI visits by site", style={"marginTop": 0}), fig_or_msg("mri_timeline", "No MRI timeline available", height=440)]
+                                    [html.H4("Baseline MRI visits by site", style={"marginTop": 0}), fig_or_msg("mri_timeline", "No MRI timeline available", FIGS, FIGS, height=440)]
                                 ),
                                 card(
-                                    [html.H4("Missing counts per panel", style={"marginTop": 0}), fig_or_msg("missing_counts", "No NA summary available", height=440)]
+                                    [html.H4("Missing counts per panel", style={"marginTop": 0}), fig_or_msg("missing_counts", "No NA summary available", FIGS, FIGS, height=440)]
                                 ),
                             ],
                         ),
@@ -393,18 +292,18 @@ layout = html.Div(
                                 html.Div(
                                     children=[
                                         html.H4("Diagnoses (counts)", style={"marginTop": 0}),
-                                        fig_or_msg("mh_bar", "No CFQ diagnosis variables present", height=360),
+                                        fig_or_msg("mh_bar", "No CFQ diagnosis variables present", FIGS, FIGS, height=360),
                                         html.Div(style={"height": "8px"}),
-                                        fig_or_msg("mh_heatmap_with_nodx", "Heatmap unavailable", height=400),
+                                        fig_or_msg("mh_heatmap_with_nodx", "Heatmap unavailable", FIGS, FIGS, height=400),
                                     ],
                                     style={"display": "grid", "gridTemplateRows": "auto auto auto"},
                                 ),
                                 html.Div(
                                     children=[
                                         html.H4("Correlations & Co-occurrence", style={"marginTop": 0}),
-                                        fig_or_msg("mh_corr", "Correlation matrix unavailable", height=400),
+                                        fig_or_msg("mh_corr", "Correlation matrix unavailable", FIGS, FIGS, height=400),
                                         html.Div(style={"height": "8px"}),
-                                        fig_or_msg("mh_cooccurrence", "Co-occurrence matrix unavailable", height=400),
+                                        fig_or_msg("mh_cooccurrence", "Co-occurrence matrix unavailable", FIGS, FIGS, height=400),
                                     ],
                                     style={"display": "grid", "gridTemplateRows": "auto auto auto"},
                                 ),
