@@ -78,7 +78,7 @@ All existing dashboard features, visualizations, and interactions continue to wo
 
 ## Requirements *(mandatory)*
 
-### Functional Requirements
+### Functional Requirements (Technical)
 
 - **FR-001**: System MUST split the current global CSS file (assets/custom.css) into page-specific CSS files based on which pages use which styles
 - **FR-002**: System MUST create a base/common CSS file (common.css) containing all shared UI component styles used across multiple pages (e.g., data tables, filter dropdowns, cards)
@@ -91,6 +91,103 @@ All existing dashboard features, visualizations, and interactions continue to wo
 - **FR-009**: CSS file organization MUST follow a clear naming convention (e.g., page_name.css for page-specific styles) with page-specific class prefixes to prevent conflicts (e.g., `.mriqc-table`, `.redcap-card`)
 - **FR-010**: All refactored code MUST pass existing tests without modification to test assertions
 - **FR-011**: System MUST support progressive rollback capability where individual pages can be reverted to original structure independently
+
+### Process Requirements (Derived from Learnings)
+
+#### Planning & Preparation
+
+- **PR-001**: Refactoring project MUST define explicit, measurable success criteria before implementation begins
+  - *Learning*: Quantitative targets (50% CSS, 40% LOC) enabled objective progress assessment
+  - *Example*: Define % reduction targets, performance thresholds, quality gates
+
+- **PR-002**: Project MUST be broken into distinct phases with clear deliverables and validation checkpoints
+  - *Learning*: 6 phases prevented scope creep and provided milestone-level reporting
+  - *Example*: Phase 1 (Setup), Phase 2 (Infrastructure), Phase 3 (Split), Phase 4 (Extract), Phase 5 (Validate), Phase 6 (Document)
+
+- **PR-003**: Each phase MUST be decomposed into granular tasks with unique identifiers and acceptance criteria
+  - *Learning*: 176 numbered tasks (T001-T176) enabled precise progress tracking and commit referencing
+  - *Example*: T074 "Extract make_chat_bubble from assistant_sandbox.py to assistant_helpers.py"
+
+- **PR-004**: Planning documentation MUST be created before implementation and updated during execution
+  - *Learning*: Documentation-first strategy provided single source of truth throughout execution
+  - *Example*: spec.md, tasks.md, plan.md, research.md created upfront; updated with actual outcomes
+
+#### Execution Strategy
+
+- **PR-005**: Refactoring MUST be performed sequentially (one logical unit at a time) rather than in parallel
+  - *Learning*: One-page-at-a-time approach enabled incremental validation and prevented half-finished work
+  - *Example*: Complete assistant_sandbox (CSS + helpers + validation) before starting mriqc
+
+- **PR-006**: Each logical unit of work MUST be committed separately with descriptive message and task references
+  - *Learning*: Per-page commits enabled granular rollback and clear progression narrative
+  - *Example*: "refactor(mriqc): Extract helpers to mriqc_helpers module (T083-T091)"
+
+- **PR-007**: Validation MUST occur immediately after each logical unit completion, not deferred to end
+  - *Learning*: Continuous validation caught issues while context was fresh
+  - *Example*: Run syntax check + manual page test after each helper extraction
+
+- **PR-008**: Repetitive refactoring patterns MUST be automated rather than performed manually
+  - *Learning*: Python refactoring scripts eliminated file corruption from manual edits
+  - *Example*: Create /tmp/refactor_page.py script for helper extraction pattern
+
+#### Quality Assurance
+
+- **PR-009**: Project MUST establish and document baseline state (including known issues) before refactoring
+  - *Learning*: Documented pre-existing test failure prevented confusion about whether refactoring broke tests
+  - *Example*: "Test baseline: ImportError in test_summarize.py (unrelated to refactoring)"
+
+- **PR-010**: Progress MUST be tracked with visible metrics that update after each completion
+  - *Learning*: Change tracking table showed concrete progress and prevented "are we done?" questions
+  - *Example*: Update data-model.md table with LOC removed after each page
+
+- **PR-011**: Automated validation MUST be performed after every file modification
+  - *Learning*: Syntax validation after each edit prevented accumulation of errors
+  - *Example*: python -m py_compile after every .py file change
+
+#### Knowledge Capture
+
+- **PR-012**: Migration impact documentation MUST be written during refactoring, not after completion
+  - *Learning*: Documentation during work captured reasoning and context accurately
+  - *Example*: Update migration-notes.md as each pattern emerges, not at project end
+
+- **PR-013**: Maintenance procedures MUST be documented alongside implementation
+  - *Learning*: Quickstart guide with maintenance section helped future developers
+  - *Example*: Document "Adding New Helper Functions" procedure when creating first helper module
+
+- **PR-014**: Learnings and insights MUST be captured in spec.md as they occur
+  - *Learning*: Post-hoc documentation is less accurate than real-time capture
+  - *Example*: Add "Challenge: File corruption → Solution: Automation" when problem solved
+
+#### Anti-Pattern Prevention
+
+- **PR-015**: Refactoring MUST NOT mix with feature additions or improvements
+  - *Learning*: Avoided scope creep by resisting "improve while we're here" temptation
+  - *Example*: Only extract helpers; don't refactor helper logic or add type hints
+
+- **PR-016**: Shared/common modules MUST NOT be created until 3+ actual sharing examples exist
+  - *Learning*: Per-page helper modules prevented premature abstraction
+  - *Example*: Don't create common_helpers.py until finding 3 functions used by multiple pages
+
+- **PR-017**: Manual multi-line edits MUST be avoided when pattern repeats 3+ times
+  - *Learning*: Scripting proved more reliable than copy-paste for repetitive tasks
+  - *Example*: After 3rd page helper extraction, create automation script for remaining 7 pages
+
+### Quality Gates (Derived from Validation Experience)
+
+- **QG-001**: Each phase completion MUST include syntax validation of all modified files
+  - *Evidence Required*: python -m py_compile passes for all affected .py files
+
+- **QG-002**: Each phase completion MUST verify test suite maintains baseline (no new failures)
+  - *Evidence Required*: pytest output shows same failures as documented baseline
+
+- **QG-003**: Each page refactoring MUST be manually verified in browser before moving to next page
+  - *Evidence Required*: Smoke test checklist completed (navigation, display, interactions work)
+
+- **QG-004**: Each helper extraction MUST verify function calls updated with correct parameters
+  - *Evidence Required*: No undefined variable errors, all parameters explicitly passed
+
+- **QG-005**: Final merge MUST include comprehensive documentation package
+  - *Evidence Required*: Spec, tasks, plan, research, validation report, migration notes, quickstart guide all present
 
 ### Key Entities
 
