@@ -4,49 +4,13 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 from flux_notebooks.lib.mriqc_summary import get_qc_summary
 from flux_notebooks.config import Settings
+from flux_notebooks.pages.mriqc_helpers import find_mriqc_htmls
 
 # Load dataset root from environment
 S = Settings.from_env()
 BIDS_ROOT = os.path.join(S.dataset_root, "bids")
 
-# dash.register_page(
-#     __name__,
-#     path_template="/mriqc-detail/<subject_id>",
-#     name="MRIQC Detail",
-# )
-
 dash.register_page(__name__, path_template="/mriqc-detail/<subject_id>", name="MRIQC Detail", order=None, include_in_nav=False)
-
-
-def _find_mriqc_htmls(subject_id):
-    """
-    Locate MRIQC HTML reports for a given subject.
-    Returns: dict of {modality: [relative URLs for /mriqc_files/...]}
-    """
-    qc_root = os.path.join(S.dataset_root, "qc", "mriqc")
-    html_links = {}
-
-    if not os.path.exists(qc_root):
-        print(f"[WARN] MRIQC root not found: {qc_root}")
-        return html_links
-
-    for root, _, files in os.walk(qc_root):
-        for f in files:
-            if f.endswith(".html") and f.startswith(subject_id):
-                modality = "unknown"
-                if "_T1w" in f:
-                    modality = "T1w"
-                elif "_bold" in f:
-                    modality = "BOLD"
-                elif "_dwi" in f:
-                    modality = "DWI"
-
-                abs_path = os.path.join(root, f)
-                rel = os.path.relpath(abs_path, qc_root)
-                html_links.setdefault(modality, []).append(rel)
-
-    print(f"[DEBUG] Found MRIQC reports for {subject_id}: {html_links}")
-    return html_links
 
 
 
@@ -72,7 +36,7 @@ def layout(subject_id=None, **kwargs):
             fluid=True,
         )
 
-    html_links = _find_mriqc_htmls(subject_id)
+    html_links = find_mriqc_htmls(subject_id, S.dataset_root)
 
     cards = []
     for mod, stats in qc.items():
