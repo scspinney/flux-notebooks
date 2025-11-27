@@ -272,7 +272,7 @@ For each page refactoring:
 | assistant_sandbox | 687 | assistant_sandbox.css (252 lines) | 9 functions → assistant_helpers.py (418 lines) | 355 lines (52%) | 1180d6e | ✓ Complete |
 | mriqc | 646 | mriqc.css (placeholder) | 3 functions → mriqc_helpers.py (116 lines) | 380 lines (59%) | 706404a | ✓ Complete |
 | mriqc_detail | 130 | mriqc.css (placeholder) | 1 function → mriqc_helpers.py (116 lines) | 37 lines (28%) | 706404a | ✓ Complete |
-| redcap | 429 | redcap.css | TBD | TBD | - | Pending |
+| redcap | 430 | redcap.css (placeholder) | 5 functions → redcap_helpers.py (181 lines) | 102 lines (24%) | d14b1e0 | ✓ Complete |
 | home | 694 | home.css | TBD | TBD | - | Pending |
 | bids | 453 | bids.css | TBD | TBD | - | Pending |
 | fmriprep_index | 348 | fmriprep.css | TBD | TBD | - | Pending |
