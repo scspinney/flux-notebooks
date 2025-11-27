@@ -269,7 +269,7 @@ For each page refactoring:
 
 | Page | Baseline LOC | CSS Created | Helpers Moved | LOC Reduced | Commit SHA | Status |
 |------|--------------|-------------|---------------|-------------|------------|--------|
-| assistant_sandbox | 687 | assistant_sandbox.css | TBD | TBD | - | Pending |
+| assistant_sandbox | 687 | assistant_sandbox.css (252 lines) | 0 (no helpers) | 0 (CSS only) | ff02815 | CSS Split Complete |
 | mriqc | 645 | mriqc.css | TBD | TBD | - | Pending |
 | mriqc_detail | 129 | mriqc.css | TBD | TBD | - | Pending |
 | redcap | 429 | redcap.css | TBD | TBD | - | Pending |
@@ -282,4 +282,10 @@ For each page refactoring:
 
 **Baseline Total**: 3994 LOC in pages/  
 **Target**: <2397 LOC (40% reduction = 1597 LOC removed)  
-**CSS Baseline**: 313 lines in assets/custom.css
+
+**CSS Baseline**: 313 lines in assets/custom.css  
+**CSS Current State**:
+- common.css: 68 lines (shared: floating-info-panel)
+- assistant_sandbox.css: 252 lines (complete .flux-assistant-sandbox namespace)
+- custom.css: 14 lines (legacy placeholder with migration notes)
+- **Total Split**: 334 lines across 3 files (+21 lines for headers/docs, -299 lines of duplication removed from custom.css)
