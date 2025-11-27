@@ -97,7 +97,19 @@ This task breakdown organizes the CSS split and page refactoring implementation 
 - [x] T018 [US1] Manual verification: App runs successfully, all CSS files load
 - [x] T019 [US1] Remove assistant-specific styles from custom.css (removed 299 lines, reduced to 14-line header)
 - [x] T020 [US1] Update specs/001-css-optimization/data-model.md change tracking table (updated with metrics)
-- [ ] T021 [US1] Commit: `feat(US1): split CSS for assistant_sandbox page`
+- [x] T021 [US1] Commit: `feat(US1): split CSS for assistant_sandbox page` (done: c784012 + 91e9ce7)
+
+### Helper Module: Assistant Sandbox
+
+- [x] T074 [US2] Identify helper functions in pages/assistant_sandbox.py (9 functions identified)
+- [x] T075 [US2] Create src/flux_notebooks/pages/assistant_helpers.py (418 lines created)
+- [x] T076 [US2] Move helper functions to assistant_helpers.py (all 9 moved with docstrings)
+- [x] T077 [US2] Add imports to pages/assistant_sandbox.py (imports + aliases added)
+- [x] T078 [US2] Run tests: `pytest tests/` (baseline state maintained)
+- [x] T079 [US2] Manual verification: Test assistant chat functionality (HTTP 200, page renders)
+- [x] T080 [US2] Measure LOC reduction: 687 → 332 lines (52% reduction, 355 lines removed)
+- [x] T081 [US2] Update change tracking table (updated with 9 functions, 418 lines helper module)
+- [ ] T082 [US2] Commit: `refactor(US2): extract assistant_sandbox helpers`
 
 ### Page Refactoring: MRIQC
 

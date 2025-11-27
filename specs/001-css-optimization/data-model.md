@@ -269,7 +269,7 @@ For each page refactoring:
 
 | Page | Baseline LOC | CSS Created | Helpers Moved | LOC Reduced | Commit SHA | Status |
 |------|--------------|-------------|---------------|-------------|------------|--------|
-| assistant_sandbox | 687 | assistant_sandbox.css (252 lines) | 0 (no helpers) | 0 (CSS only) | ff02815 | CSS Split Complete |
+| assistant_sandbox | 687 | assistant_sandbox.css (252 lines) | 9 functions → assistant_helpers.py (418 lines) | 355 lines (52%) | Pending | Helper Extraction Complete |
 | mriqc | 645 | mriqc.css | TBD | TBD | - | Pending |
 | mriqc_detail | 129 | mriqc.css | TBD | TBD | - | Pending |
 | redcap | 429 | redcap.css | TBD | TBD | - | Pending |
