@@ -10,6 +10,22 @@
 
 This refactoring splits a large global CSS file into page-specific files and moves helper functions from page modules into organized source modules. The goal is faster page loads (30% improvement) and better code maintainability.
 
+### CSS Loading Mechanism
+
+**Dash Automatic Loading**: Dash automatically loads all CSS files from the `assets/` folder in alphabetical order. No explicit registration required.
+
+**Current State (Progressive Migration)**:
+```
+assets/
+  assistant_sandbox.css      # Assistant page styles (213 lines) - DONE
+  common.css                 # Shared styles (67 lines) - DONE
+  custom.css                 # LEGACY monolithic CSS (313 lines) - KEPT FOR ROLLBACK
+  custom.css.backup          # Original backup
+  flux_inputs.css            # Input styling (existing)
+```
+
+**Feature Flag**: Set `FLUX_PAGE_CSS=true` environment variable to document intent to use split CSS (currently both old and new CSS files load simultaneously during migration).
+
 ### Key Changes
 
 **Before**:
@@ -24,7 +40,8 @@ pages/mriqc.py                 # Layout + callbacks only (120 lines)
 src/flux_notebooks/pages/
   └── mriqc_helpers.py         # Helper functions (80 lines)
 assets/
-  ├── common.css               # Shared styles (~100 lines)
+  ├── common.css               # Shared styles (~67 lines)
+  ├── assistant_sandbox.css    # Assistant-specific styles (~213 lines)
   └── mriqc.css                # MRIQC-specific styles (~50 lines)
 ```
 
@@ -76,7 +93,7 @@ When creating a new dashboard page:
    }
    ```
 
-4. **CSS is auto-loaded**: The app startup logic automatically detects `new_page.py` and loads `new_page.css` + `common.css`
+4. **CSS is auto-loaded**: Dash automatically loads all CSS files from `assets/` folder (including `common.css` and `new_page.css`)
 
 ### Modifying an Existing Page
 

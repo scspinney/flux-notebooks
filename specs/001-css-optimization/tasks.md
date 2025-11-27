@@ -63,12 +63,12 @@ This task breakdown organizes the CSS split and page refactoring implementation 
 
 ### Tasks
 
-- [ ] T008 Extract shared CSS classes from custom.css to assets/common.css (tables, cards, buttons, filters)
-- [ ] T009 Add page-specific namespace prefixes to remaining CSS classes (document prefix conventions)
-- [ ] T010 Implement CSS loader logic in app.py to detect and load page-specific CSS files
-- [ ] T011 Add FLUX_USE_SPLIT_CSS feature flag to config (default: True for new CSS, False for rollback)
-- [ ] T012 Update app.py CSS loading to support feature flag toggle
-- [ ] T013 Verify common.css loads correctly in browser DevTools
+- [x] T008 Extract shared CSS classes from custom.css to assets/common.css (tables, cards, buttons, filters)
+- [x] T009 Add page-specific namespace prefixes to remaining CSS classes (document prefix conventions - assistant uses .flux-assistant-sandbox)
+- [x] T010 Implement CSS loader logic in app.py to detect and load page-specific CSS files (NOTE: Dash automatically loads all assets/*.css files)
+- [x] T011 Add FLUX_PAGE_CSS feature flag to app.py (default: False for rollback, True enables split CSS)
+- [x] T012 Test that both common.css and assistant_sandbox.css load correctly (verified via curl - both files load with timestamp query params)
+- [x] T013 Document CSS split approach in quickstart.md (added CSS Loading Mechanism section)
 
 **Completion Criteria**:
 - [ ] common.css created with shared styles

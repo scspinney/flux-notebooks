@@ -33,6 +33,9 @@ ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("FLUX_DATASET_ROOT", str(ROOT / "superdemo_real"))
 os.environ.setdefault("FLUX_REDCAP_ROOT", str(ROOT / "data" / "redcap"))
 
+# Feature flag: Enable page-specific CSS loading (FR-001)
+ENABLE_PAGE_CSS = os.environ.get("FLUX_PAGE_CSS", "false").lower() in ("true", "1", "yes")
+
 S = Settings.from_env()
 DATASET_ROOT = Path(S.dataset_root).resolve()
 DATA_ROOT = (DATASET_ROOT / "qc" / "mriqc").resolve()

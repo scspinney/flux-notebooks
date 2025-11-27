@@ -1,0 +1,252 @@
+/***********************************************************
+ * NAMESPACE: .flux-assistant-sandbox
+ * No sandbox layout or bubble styles leak outside this box.
+ ***********************************************************/
+
+/* Wrapper */
+.flux-assistant-sandbox {
+    --flux-radius: 12px;
+    --flux-border: 1px solid #e2e8f0;
+    --flux-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    --flux-bg: #ffffff;
+    --flux-bg-soft: #f8fafc;
+    --flux-text: #0f172a;
+
+    background: var(--flux-bg);
+    border-radius: var(--flux-radius);
+    padding: 24px;
+    max-width: 1400px;
+    width: 95%;
+    margin: 0 auto;
+    color: var(--flux-text);
+    font-family: 'Inter','Helvetica Neue',sans-serif;
+}
+
+/* --------------------------------------------- */
+/* Chat window                                   */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-chat-window {
+    margin-top: 24px;
+    padding: 20px;
+    min-height: 420px;
+    background: var(--flux-bg-soft);
+    border: var(--flux-border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    max-height: calc(100vh - 260px);
+}
+
+/* --------------------------------------------- */
+/* Bubbles                                       */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-bubble-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    margin: 12px 0;
+}
+.flux-assistant-sandbox .sandbox-bubble-row-user {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+.flux-assistant-sandbox .sandbox-bubble {
+    max-width: 85%;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #1e293b;
+    box-shadow: var(--flux-shadow);
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.flux-assistant-sandbox .sandbox-bubble-user {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+.flux-assistant-sandbox .sandbox-bubble code {
+    background: #f1f5f9;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.flux-assistant-sandbox .sandbox-bubble pre code {
+    background: #f3f4f6;
+    padding: 12px;
+    border-radius: 10px;
+    display: block;
+    overflow-x: auto;
+}
+
+/* --------------------------------------------- */
+/* Image grid + thumbnails                       */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.flux-assistant-sandbox .sandbox-img-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.flux-assistant-sandbox .flux-plot-thumb {
+    max-width: 100%;
+    border-radius: 12px;
+    cursor: zoom-in;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+}
+
+/* --------------------------------------------- */
+/* Explanation + reasoning                        */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-explanation-md {
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: var(--flux-border);
+    margin-top: 10px;
+}
+.flux-assistant-sandbox .sandbox-reasoning-container {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border: var(--flux-border);
+}
+.flux-assistant-sandbox .sandbox-reasoning-container summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* --------------------------------------------- */
+/* Chips                                         */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-suggestion-row {
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.flux-assistant-sandbox .sandbox-suggestion {
+    background: #f1f5f9;
+    border: 1px solid #dce3ea;
+    color: #1e293b;
+    padding: 10px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.flux-assistant-sandbox .sandbox-suggestion:hover {
+    background: #e2ecff;
+}
+
+/* --------------------------------------------- */
+/* Input row                                     */
+/* --------------------------------------------- */
+.flux-assistant-sandbox #sandbox-input {
+    height: 48px;
+}
+.flux-assistant-sandbox #sandbox-send {
+    height: 48px;
+    font-weight: 600;
+}
+
+/* --------------------------------------------- */
+/* Scrollbar                                     */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .sandbox-chat-window::-webkit-scrollbar { width: 6px; }
+.flux-assistant-sandbox .sandbox-chat-window::-webkit-scrollbar-thumb {
+    background-color: #94a3b8;
+    border-radius: 10px;
+}
+
+/* --------------------------------------------- */
+/* Thinking bar                                  */
+/* --------------------------------------------- */
+.flux-assistant-sandbox .flux-thinking-bar {
+    position: absolute;
+    top: -12px;
+    left: 0;
+    height: 4px;
+    width: 100%;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.flux-assistant-sandbox .flux-thinking-bar.show { opacity: 1; }
+
+.flux-assistant-sandbox .flux-thinking-bar::before {
+    content: "";
+    position: absolute;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #0ea5e9, #3b82f6);
+    animation: flux-slide 1.3s infinite;
+    border-radius: 4px;
+}
+
+@keyframes flux-slide {
+  0% { left: -40%; }
+  50% { left: 60%; }
+  100% { left: 120%; }
+}
+
+/* TEMP DISABLE slide-out assistant */
+#chat-container,
+#chat-tab,
+#chat-backdrop,
+.flux-chat-sidebar,
+.flux-chat-header,
+.flux-chat-body,
+.flux-chat-input-row {
+    display: none !important;
+}
+
+/* typing bubble */
+.typing-bubble {
+    padding: 4px 12px;
+}
+
+.typing-dots {
+    width: 24px;
+    height: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.typing-dots::before,
+.typing-dots::after,
+.typing-dots div {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background-color: #1f2937;
+    border-radius: 50%;
+    display: inline-block;
+    animation: blink 1.4s infinite both;
+}
+
+.typing-dots div {
+    animation-delay: 0.2s;
+}
+
+.typing-dots::after {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0% { opacity: 0.2; }
+    20% { opacity: 1; }
+    100% { opacity: 0.2; }
+}
