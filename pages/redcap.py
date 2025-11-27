@@ -163,7 +163,7 @@ layout = html.Div(
                                 card(
                                     [
                                         html.H4("Observed vs Target — Age × Sex (per site)", style={"marginTop": 0}),
-                                        fig_or_msg("overlay_age_sex", "Targets not found or observed Sex×Age empty", FIGS, FIGS,
+                                        fig_or_msg("overlay_age_sex", "Targets not found or observed Sex×Age empty", FIGS,
                                             height=650,
                                         ),
                                     ]
@@ -171,7 +171,7 @@ layout = html.Div(
                                 card(
                                     [
                                         html.H4("Observed vs Target — Ethnicity totals (per site)", style={"marginTop": 0}),
-                                        fig_or_msg("overlay_ethnicity_totals", "No totals comparison available", FIGS, FIGS,
+                                        fig_or_msg("overlay_ethnicity_totals", "No totals comparison available", FIGS,
                                             height=650,
                                         ),
                                     ],
@@ -214,7 +214,7 @@ layout = html.Div(
                                     is_open=False,
                                     children=[
                                         html.Div(style={"height": "10px"}),
-                                        fig_or_msg("overlay_age_ethnicity", "Targets not found or observed Ethnicity×Age empty", FIGS, FIGS,
+                                        fig_or_msg("overlay_age_ethnicity", "Targets not found or observed Ethnicity×Age empty", FIGS,
                                             height=900,
                                             style_extra={"overflowX": "auto"},
                                         ),
@@ -235,25 +235,25 @@ layout = html.Div(
                             style=grid1,
                             children=[
                                 card(
-                                    [html.H4("Age groups by site (baseline)", style={"marginTop": 0}), fig_or_msg("age", "No age data available", FIGS, FIGS, height=420)]
+                                    [html.H4("Age groups by site (baseline)", style={"marginTop": 0}), fig_or_msg("age", "No age data available", FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Sex distribution by site", style={"marginTop": 0}), fig_or_msg("sex", "No sex data available", FIGS, FIGS, height=420)]
+                                    [html.H4("Sex distribution by site", style={"marginTop": 0}), fig_or_msg("sex", "No sex data available", FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Gender identity by site", style={"marginTop": 0}), fig_or_msg("gender", "No gender data available", FIGS, FIGS, height=420)]
+                                    [html.H4("Gender identity by site", style={"marginTop": 0}), fig_or_msg("gender", "No gender data available", FIGS, height=420)]
                                 ),
                                 card(
-                                    [html.H4("Ethnicity (all labels)", style={"marginTop": 0}), fig_or_msg("ethnicity_full", "No ethnicity data available", FIGS, FIGS, height=420)]
+                                    [html.H4("Ethnicity (all labels)", style={"marginTop": 0}), fig_or_msg("ethnicity_full", "No ethnicity data available", FIGS, height=420)]
                                 ),
                                 card(
                                     [
                                         html.H4("Ethnicity (White / Non-white) by site", style={"marginTop": 0}),
-                                        fig_or_msg("ethnicity_white_nonwhite", "No white/non-white data available", FIGS, FIGS, height=420),
+                                        fig_or_msg("ethnicity_white_nonwhite", "No white/non-white data available", FIGS, height=420),
                                     ]
                                 ),
                                 card(
-                                    [html.H4("Household income (baseline)", style={"marginTop": 0}), fig_or_msg("income", "No income data available", FIGS, FIGS, height=420)]
+                                    [html.H4("Household income (baseline)", style={"marginTop": 0}), fig_or_msg("income", "No income data available", FIGS, height=420)]
                                 ),
                             ],
                         ),
@@ -270,10 +270,10 @@ layout = html.Div(
                             style=grid1,
                             children=[
                                 card(
-                                    [html.H4("Baseline MRI visits by site", style={"marginTop": 0}), fig_or_msg("mri_timeline", "No MRI timeline available", FIGS, FIGS, height=440)]
+                                    [html.H4("Baseline MRI visits by site", style={"marginTop": 0}), fig_or_msg("mri_timeline", "No MRI timeline available", FIGS, height=440)]
                                 ),
                                 card(
-                                    [html.H4("Missing counts per panel", style={"marginTop": 0}), fig_or_msg("missing_counts", "No NA summary available", FIGS, FIGS, height=440)]
+                                    [html.H4("Missing counts per panel", style={"marginTop": 0}), fig_or_msg("missing_counts", "No NA summary available", FIGS, height=440)]
                                 ),
                             ],
                         ),
@@ -292,18 +292,18 @@ layout = html.Div(
                                 html.Div(
                                     children=[
                                         html.H4("Diagnoses (counts)", style={"marginTop": 0}),
-                                        fig_or_msg("mh_bar", "No CFQ diagnosis variables present", FIGS, FIGS, height=360),
+                                        fig_or_msg("mh_bar", "No CFQ diagnosis variables present", FIGS, height=360),
                                         html.Div(style={"height": "8px"}),
-                                        fig_or_msg("mh_heatmap_with_nodx", "Heatmap unavailable", FIGS, FIGS, height=400),
+                                        fig_or_msg("mh_heatmap_with_nodx", "Heatmap unavailable", FIGS, height=400),
                                     ],
                                     style={"display": "grid", "gridTemplateRows": "auto auto auto"},
                                 ),
                                 html.Div(
                                     children=[
                                         html.H4("Correlations & Co-occurrence", style={"marginTop": 0}),
-                                        fig_or_msg("mh_corr", "Correlation matrix unavailable", FIGS, FIGS, height=400),
+                                        fig_or_msg("mh_corr", "Correlation matrix unavailable", FIGS, height=400),
                                         html.Div(style={"height": "8px"}),
-                                        fig_or_msg("mh_cooccurrence", "Co-occurrence matrix unavailable", FIGS, FIGS, height=400),
+                                        fig_or_msg("mh_cooccurrence", "Co-occurrence matrix unavailable", FIGS, height=400),
                                     ],
                                     style={"display": "grid", "gridTemplateRows": "auto auto auto"},
                                 ),
