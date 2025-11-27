@@ -275,10 +275,10 @@ For each page refactoring:
 | redcap | 430 | redcap.css (placeholder) | 5 functions → redcap_helpers.py (181 lines) | 102 lines (24%) | d14b1e0 | ✓ Complete |
 | home | 695 | home.css (placeholder) | 8 functions → home_helpers.py (436 lines) | 311 lines (45%) | 357ded7 | ✓ Complete |
 | bids | 454 | bids.css (placeholder) | 2 functions → bids_helpers.py (251 lines) | 294 lines (65%) | 180fa55 | ✓ Complete |
-| fmriprep_index | 348 | fmriprep.css | TBD | TBD | - | Pending |
-| fmriprep_detail | 155 | fmriprep.css | TBD | TBD | - | Pending |
-| freesurfer | 16 | freesurfer.css | TBD | TBD | - | Pending |
-| subject_detail | 438 | subject.css | TBD | TBD | - | Pending |
+| fmriprep_index | 349 | fmriprep.css (placeholder) | 3 functions → fmriprep_helpers.py (74 lines) | 63 lines (18%) | 61042b3 | ✓ Complete |
+| fmriprep_detail | 155 | fmriprep.css (placeholder) | 0 functions (no helpers) | 0 lines (0%) | 61042b3 | ✓ Complete |
+| freesurfer | 16 | freesurfer.css (placeholder) | 0 functions (no helpers) | 0 lines (0%) | N/A | ✓ Complete |
+| subject_detail | 439 | subject.css (placeholder) | 4 functions → subject_detail_helpers.py (341 lines) | 304 lines (69%) | - | ✓ Complete |
 
 **Baseline Total**: 3994 LOC in pages/  
 **Target**: <2397 LOC (40% reduction = 1597 LOC removed)  
