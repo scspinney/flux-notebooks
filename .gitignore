@@ -23,7 +23,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 book/_build/
-data/
+data*/
 
 
 build_superdemo_real.py
