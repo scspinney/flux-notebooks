@@ -274,7 +274,7 @@ For each page refactoring:
 | mriqc_detail | 130 | mriqc.css (placeholder) | 1 function → mriqc_helpers.py (116 lines) | 37 lines (28%) | 706404a | ✓ Complete |
 | redcap | 430 | redcap.css (placeholder) | 5 functions → redcap_helpers.py (181 lines) | 102 lines (24%) | d14b1e0 | ✓ Complete |
 | home | 695 | home.css (placeholder) | 8 functions → home_helpers.py (436 lines) | 311 lines (45%) | 357ded7 | ✓ Complete |
-| bids | 453 | bids.css | TBD | TBD | - | Pending |
+| bids | 454 | bids.css (placeholder) | 2 functions → bids_helpers.py (251 lines) | 294 lines (65%) | 180fa55 | ✓ Complete |
 | fmriprep_index | 348 | fmriprep.css | TBD | TBD | - | Pending |
 | fmriprep_detail | 155 | fmriprep.css | TBD | TBD | - | Pending |
 | freesurfer | 16 | freesurfer.css | TBD | TBD | - | Pending |
