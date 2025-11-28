@@ -8,6 +8,7 @@ from dash import html, dcc, Input, Output, State, callback, no_update
 import dash_bootstrap_components as dbc
 import dash
 from typing import Dict, List, Optional
+import requests
 
 # Import helper functions from dedicated module
 from flux_notebooks.pages.assistant_helpers import (
