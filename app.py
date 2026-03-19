@@ -8,12 +8,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 
 
-import re, mimetypes, logging
+import re, mimetypes, logging, json
 from pathlib import Path, PurePosixPath
-from flask import Response, send_file, send_from_directory, abort
+from flask import Response, send_file, send_from_directory, abort, session
 import dash
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, Input, Output, State, no_update
 import dash_bootstrap_components as dbc
+from werkzeug.security import generate_password_hash, check_password_hash
 from flux_notebooks.config import Settings
 
 
@@ -32,6 +33,7 @@ from flux_notebooks.callbacks.assistant_callbacks import register_assistant_call
 ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("FLUX_DATASET_ROOT", str(ROOT / "superdemo_real"))
 os.environ.setdefault("FLUX_REDCAP_ROOT", str(ROOT / "data" / "redcap"))
+AUTH_USERS_FILE = Path(os.environ.get("FLUX_USERS_FILE", str(ROOT / ".flux_users.json")))
 
 # Feature flag: Enable page-specific CSS loading (FR-001)
 ENABLE_PAGE_CSS = os.environ.get("FLUX_PAGE_CSS", "false").lower() in ("true", "1", "yes")
@@ -73,7 +75,15 @@ def build_navbar():
         dbc.Container(
             [
                 dbc.NavbarBrand("BIDS-Flux Dashboards", href="/", class_name="fw-bold fs-4 me-4"),
-                dbc.Nav(nav_links, pills=True, navbar=True),
+                dbc.Nav(nav_links, pills=True, navbar=True, id="main-nav"),
+                html.Div(
+                    id="logout-wrap",
+                    style={"display": "none"},
+                    children=[
+                        html.Span(id="current-user-label", className="text-light me-2 small"),
+                        dbc.Button("Log out", id="logout-btn", color="light", size="sm", n_clicks=0),
+                    ],
+                ),
             ],
             fluid=True,
         ),
@@ -85,6 +95,132 @@ def build_navbar():
             "background": "linear-gradient(90deg, #002B4E 0%, #003E6B 100%)",
             "padding": "0.6rem 1.2rem",
         },
+    )
+
+
+def _load_users() -> dict:
+    if AUTH_USERS_FILE.exists():
+        try:
+            return json.loads(AUTH_USERS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_users(users: dict) -> None:
+    AUTH_USERS_FILE.write_text(json.dumps(users, indent=2), encoding="utf-8")
+
+
+def _bootstrap_admin_user() -> None:
+    seed_user = os.environ.get("FLUX_ADMIN_USER")
+    seed_pass = os.environ.get("FLUX_ADMIN_PASSWORD")
+    if not seed_user or not seed_pass:
+        return
+    users = _load_users()
+    if seed_user not in users:
+        users[seed_user] = generate_password_hash(seed_pass)
+        _save_users(users)
+
+
+def build_auth_landing() -> html.Div:
+    return html.Div(
+        id="auth-landing",
+        style={"display": "none"},
+        children=[
+            dbc.Container(
+                className="py-5",
+                children=[
+                    dbc.Row(
+                        className="justify-content-center",
+                        children=[
+                            dbc.Col(
+                                lg=10,
+                                children=[
+                                    html.Div(
+                                        className="mb-4 text-center",
+                                        children=[
+                                            html.H1("Welcome to BIDS-Flux", className="fw-bold"),
+                                            html.P(
+                                                "Sign in to access your dashboards and study reports.",
+                                                className="text-muted",
+                                            ),
+                                        ],
+                                    ),
+                                    dbc.Row(
+                                        className="g-4",
+                                        children=[
+                                            dbc.Col(
+                                                md=6,
+                                                children=[
+                                                    dbc.Card(
+                                                        className="shadow-sm h-100",
+                                                        body=True,
+                                                        children=[
+                                                            html.H4("Log in", className="mb-3"),
+                                                            dbc.Label("Username"),
+                                                            dbc.Input(
+                                                                id="login-username",
+                                                                placeholder="Enter username",
+                                                                type="text",
+                                                            ),
+                                                            dbc.Label("Password", className="mt-3"),
+                                                            dbc.Input(
+                                                                id="login-password",
+                                                                placeholder="Enter password",
+                                                                type="password",
+                                                            ),
+                                                            dbc.Button(
+                                                                "Log in",
+                                                                id="login-btn",
+                                                                color="primary",
+                                                                className="mt-4 w-100",
+                                                                n_clicks=0,
+                                                            ),
+                                                        ],
+                                                    )
+                                                ],
+                                            ),
+                                            dbc.Col(
+                                                md=6,
+                                                children=[
+                                                    dbc.Card(
+                                                        className="shadow-sm h-100",
+                                                        body=True,
+                                                        children=[
+                                                            html.H4("Create account", className="mb-3"),
+                                                            dbc.Label("Username"),
+                                                            dbc.Input(
+                                                                id="signup-username",
+                                                                placeholder="Choose a username",
+                                                                type="text",
+                                                            ),
+                                                            dbc.Label("Password", className="mt-3"),
+                                                            dbc.Input(
+                                                                id="signup-password",
+                                                                placeholder="Choose a password",
+                                                                type="password",
+                                                            ),
+                                                            dbc.Button(
+                                                                "Sign up",
+                                                                id="signup-btn",
+                                                                color="success",
+                                                                className="mt-4 w-100",
+                                                                n_clicks=0,
+                                                            ),
+                                                        ],
+                                                    )
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    html.Div(id="auth-feedback", className="mt-3"),
+                                ],
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
     )
 
 # ╭─────────────────────────────────────────────────────────────╮
@@ -99,6 +235,8 @@ app = Dash(
 )
 
 server = app.server
+server.secret_key = os.environ.get("FLUX_SECRET_KEY", "flux-dev-secret-change-me")
+_bootstrap_admin_user()
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s: %(message)s")
 app.logger.setLevel(logging.DEBUG)
 
@@ -154,15 +292,127 @@ app.index_string = """
 app.layout = html.Div(
     [
         dcc.Location(id="url"),
+        dcc.Location(id="auth-redirect"),
+        dcc.Store(id="auth-store", storage_type="session"),
         build_navbar(),
-        html.Div(dash.page_container, id="page-content", className="container-fluid px-4"),
-        render_chat(),  # 👈 Floating LLM assistant chat widget
-        html.Footer(
-            "© 2025 BIDS-Flux Dashboards",
-            className="text-center text-muted mt-5 mb-3 small",
+        build_auth_landing(),
+        html.Div(
+            id="app-shell",
+            children=[
+                html.Div(dash.page_container, id="page-content", className="container-fluid px-4"),
+                render_chat(),  # 👈 Floating LLM assistant chat widget
+                html.Footer(
+                    "© 2025 BIDS-Flux Dashboards",
+                    className="text-center text-muted mt-5 mb-3 small",
+                ),
+            ],
         ),
     ]
 )
+
+
+@app.callback(
+    Output("auth-store", "data"),
+    Output("auth-redirect", "pathname"),
+    Output("auth-feedback", "children"),
+    Input("url", "pathname"),
+    Input("login-btn", "n_clicks"),
+    Input("signup-btn", "n_clicks"),
+    Input("logout-btn", "n_clicks"),
+    State("login-username", "value"),
+    State("login-password", "value"),
+    State("signup-username", "value"),
+    State("signup-password", "value"),
+    prevent_initial_call=False,
+)
+def handle_auth(
+    pathname,
+    _login_clicks,
+    _signup_clicks,
+    _logout_clicks,
+    login_user,
+    login_pass,
+    signup_user,
+    signup_pass,
+):
+    trigger = dash.ctx.triggered_id
+    current_user = session.get("flux_user")
+
+    if trigger in (None, "url"):
+        if current_user and pathname == "/auth":
+            return {"authenticated": True, "user": current_user}, "/", no_update
+        if not current_user and pathname != "/auth":
+            return {"authenticated": False, "user": None}, "/auth", no_update
+        return {"authenticated": bool(current_user), "user": current_user}, no_update, no_update
+
+    if trigger == "logout-btn":
+        session.pop("flux_user", None)
+        return {"authenticated": False, "user": None}, "/auth", dbc.Alert(
+            "You have been logged out.", color="secondary", dismissable=True
+        )
+
+    if trigger == "login-btn":
+        if not login_user or not login_pass:
+            return no_update, no_update, dbc.Alert(
+                "Enter both username and password.", color="warning", dismissable=True
+            )
+        users = _load_users()
+        stored_hash = users.get(login_user)
+        if not stored_hash or not check_password_hash(stored_hash, login_pass):
+            return {"authenticated": False, "user": None}, no_update, dbc.Alert(
+                "Invalid username or password.", color="danger", dismissable=True
+            )
+        session["flux_user"] = login_user
+        return {"authenticated": True, "user": login_user}, "/", dbc.Alert(
+            "Login successful.", color="success", dismissable=True
+        )
+
+    if trigger == "signup-btn":
+        if not signup_user or not signup_pass:
+            return no_update, no_update, dbc.Alert(
+                "Choose both username and password.", color="warning", dismissable=True
+            )
+        users = _load_users()
+        if signup_user in users:
+            return no_update, no_update, dbc.Alert(
+                "Username already exists.", color="danger", dismissable=True
+            )
+        users[signup_user] = generate_password_hash(signup_pass)
+        _save_users(users)
+        session["flux_user"] = signup_user
+        return {"authenticated": True, "user": signup_user}, "/", dbc.Alert(
+            "Account created.", color="success", dismissable=True
+        )
+
+    return no_update, no_update, no_update
+
+
+@app.callback(
+    Output("auth-landing", "style"),
+    Output("app-shell", "style"),
+    Output("main-nav", "style"),
+    Output("logout-wrap", "style"),
+    Output("current-user-label", "children"),
+    Input("auth-store", "data"),
+)
+def update_auth_view(auth_data):
+    authenticated = bool((auth_data or {}).get("authenticated"))
+    username = (auth_data or {}).get("user") or ""
+    if authenticated:
+        return (
+            {"display": "none"},
+            {"display": "block"},
+            {"display": "flex"},
+            {"display": "flex", "alignItems": "center", "marginLeft": "auto"},
+            f"Signed in as {username}",
+        )
+    return (
+        {"display": "block"},
+        {"display": "none"},
+        {"display": "none"},
+        {"display": "none"},
+        "",
+    )
 
 
 # ╭─────────────────────────────────────────────────────────────╮
