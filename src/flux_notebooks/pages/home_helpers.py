@@ -183,6 +183,7 @@ def make_pie(label: str, enrolled: int, target: int, site_colors: dict, emphasiz
     """
     enrolled_pct = round((enrolled / target * 100), 1) if target else 0
     site_color = site_colors.get(label, "#0F0B01")
+    is_overall = "overall" in label.lower()
 
     # sizes that fit inside card
     size = 300 if emphasize else 160
@@ -213,7 +214,8 @@ def make_pie(label: str, enrolled: int, target: int, site_colors: dict, emphasiz
                 y=0.5,
                 showarrow=False,
                 align="center",
-                font=dict(size=int(18 * size_factor), color="#111", family="Inter, sans-serif"),
+                # Color is overridden in dark mode by theme.css for high contrast.
+                font=dict(size=int(18 * size_factor), color="#1f2937", family="Inter, sans-serif"),
             )
         ],
     )
@@ -228,7 +230,11 @@ def make_pie(label: str, enrolled: int, target: int, site_colors: dict, emphasiz
         gradient_color = base_gradient
 
     return html.Div(
-        className=("card-fade glass-card " + ("big-donut" if emphasize else "")).strip(),
+        className=(
+            "card-fade glass-card flux-donut-card "
+            + ("big-donut " if emphasize else "")
+            + ("donut-overall" if is_overall else "")
+        ).strip(),
         style={
             "textAlign": "center",
             "margin": "10px",
@@ -238,16 +244,25 @@ def make_pie(label: str, enrolled: int, target: int, site_colors: dict, emphasiz
             "boxShadow": "0 5px 14px rgba(0,0,0,0.15)" if emphasize else "0 3px 8px rgba(0,0,0,0.1)",
         },
         children=[
-            html.H5(label, style={"marginBottom": "4px", "color": site_color, "fontWeight": "600"}),
+            html.H5(
+                label,
+                className="donut-title",
+                style={
+                    "marginBottom": "4px",
+                    "color": "var(--flux-text)" if is_overall else site_color,
+                    "fontWeight": "600",
+                },
+            ),
             html.Div(
                 dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "100%", "width": "100%"}),
                 style={"width": f"{size}px", "height": f"{size}px", "margin": "0 auto"},
             ),
             html.Div(
                 f"{enrolled}/{target} enrolled",
+                className="donut-caption",
                 style={
                     "fontSize": "16px" if emphasize else "15px",
-                    "color": "#333",
+                    "color": "var(--flux-text)",
                     "fontWeight": "600",
                     "marginTop": "4px",
                 },

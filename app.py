@@ -77,11 +77,18 @@ def build_navbar():
                 dbc.NavbarBrand("BIDS-Flux Dashboards", href="/", class_name="fw-bold fs-4 me-4"),
                 dbc.Nav(nav_links, pills=True, navbar=True, id="main-nav"),
                 html.Div(
-                    id="logout-wrap",
-                    style={"display": "none"},
+                    id="nav-controls",
+                    style={"marginLeft": "auto", "display": "flex", "gap": "0.6rem", "alignItems": "center"},
                     children=[
-                        html.Span(id="current-user-label", className="text-light me-2 small"),
-                        dbc.Button("Log out", id="logout-btn", color="light", size="sm", n_clicks=0),
+                        dbc.Button("Dark mode", id="theme-toggle", color="light", outline=True, size="sm", n_clicks=0),
+                        html.Div(
+                            id="logout-wrap",
+                            style={"display": "none"},
+                            children=[
+                                html.Span(id="current-user-label", className="text-light me-2 small"),
+                                dbc.Button("Log out", id="logout-btn", color="light", size="sm", n_clicks=0),
+                            ],
+                        ),
                     ],
                 ),
             ],
@@ -90,9 +97,8 @@ def build_navbar():
         color="#002B4E",   # Flux navy
         dark=True,
         sticky="top",
-        class_name="shadow-sm mb-4",
+        class_name="shadow-sm mb-4 flux-navbar",
         style={
-            "background": "linear-gradient(90deg, #002B4E 0%, #003E6B 100%)",
             "padding": "0.6rem 1.2rem",
         },
     )
@@ -290,10 +296,13 @@ app.index_string = """
 
 # Layout: Navbar + Page container + Footer
 app.layout = html.Div(
-    [
+    id="root-shell",
+    className="theme-light",
+    children=[
         dcc.Location(id="url"),
         dcc.Location(id="auth-redirect"),
         dcc.Store(id="auth-store", storage_type="session"),
+        dcc.Store(id="theme-store", storage_type="local", data={"mode": "light"}),
         build_navbar(),
         build_auth_landing(),
         html.Div(
@@ -309,6 +318,30 @@ app.layout = html.Div(
         ),
     ]
 )
+
+
+@app.callback(
+    Output("theme-store", "data"),
+    Input("theme-toggle", "n_clicks"),
+    State("theme-store", "data"),
+    prevent_initial_call=True,
+)
+def toggle_theme(_n_clicks, theme_data):
+    current = (theme_data or {}).get("mode", "light")
+    next_mode = "dark" if current == "light" else "light"
+    return {"mode": next_mode}
+
+
+@app.callback(
+    Output("root-shell", "className"),
+    Output("theme-toggle", "children"),
+    Input("theme-store", "data"),
+)
+def apply_theme(theme_data):
+    mode = (theme_data or {}).get("mode", "light")
+    if mode == "dark":
+        return "theme-dark", "Light mode"
+    return "theme-light", "Dark mode"
 
 
 @app.callback(

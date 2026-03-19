@@ -1,0 +1,134 @@
+/* Global theme tokens and app-wide dark mode overrides */
+
+.theme-light {
+  --flux-bg: #f3f5f7;
+  --flux-surface: #ffffff;
+  --flux-surface-muted: #f8fafc;
+  --flux-text: #1f2937;
+  --flux-text-muted: #6b7280;
+  --flux-border: #dbe3ea;
+  --flux-navbar-bg: linear-gradient(90deg, #002b4e 0%, #003e6b 100%);
+  --flux-navbar-text: #e8f0fb;
+  --flux-link: #0b66ff;
+  --flux-control-bg: #ffffff;
+  --flux-control-text: #111827;
+  --flux-control-placeholder: #8d98a8;
+  --flux-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+
+.theme-dark {
+  --flux-bg: #0b1220;
+  --flux-surface: #111a2b;
+  --flux-surface-muted: #0f1726;
+  --flux-text: #e5edf8;
+  --flux-text-muted: #a8b4c6;
+  --flux-border: #25324a;
+  --flux-navbar-bg: linear-gradient(90deg, #081426 0%, #102541 100%);
+  --flux-navbar-text: #dbeafe;
+  --flux-link: #93c5fd;
+  --flux-control-bg: #0f1726;
+  --flux-control-text: #e5edf8;
+  --flux-control-placeholder: #90a0b7;
+  --flux-shadow: 0 10px 28px rgba(2, 6, 23, 0.55);
+}
+
+#root-shell {
+  background: var(--flux-bg);
+  color: var(--flux-text);
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+#root-shell .text-muted {
+  color: var(--flux-text-muted) !important;
+}
+
+#root-shell a {
+  color: var(--flux-link);
+}
+
+#root-shell .flux-navbar {
+  background: var(--flux-navbar-bg) !important;
+}
+
+#root-shell .navbar,
+#root-shell .navbar a,
+#root-shell .navbar .nav-link,
+#root-shell .navbar .navbar-brand {
+  color: var(--flux-navbar-text) !important;
+}
+
+#root-shell .navbar .nav-pills .nav-link.active,
+#root-shell .navbar .nav-pills .show > .nav-link {
+  background: rgba(148, 197, 255, 0.22) !important;
+  border: 1px solid rgba(148, 197, 255, 0.3) !important;
+}
+
+#root-shell .container,
+#root-shell .container-fluid,
+#root-shell .row,
+#root-shell .col {
+  color: var(--flux-text);
+}
+
+#root-shell .card,
+#root-shell .glass-card,
+#root-shell .floating-info-panel,
+#root-shell .accordion-item,
+#root-shell .modal-content,
+#root-shell .dash-table-container {
+  background: var(--flux-surface) !important;
+  color: var(--flux-text) !important;
+  border-color: var(--flux-border) !important;
+  box-shadow: var(--flux-shadow);
+}
+
+#root-shell .nav-tabs,
+#root-shell .nav-pills .nav-link,
+#root-shell .accordion-button,
+#root-shell .table {
+  color: var(--flux-text);
+}
+
+#root-shell .form-control,
+#root-shell .form-select,
+#root-shell input,
+#root-shell textarea,
+#root-shell select {
+  background: var(--flux-control-bg) !important;
+  color: var(--flux-control-text) !important;
+  border-color: var(--flux-border) !important;
+}
+
+#root-shell .form-control::placeholder,
+#root-shell input::placeholder,
+#root-shell textarea::placeholder {
+  color: var(--flux-control-placeholder) !important;
+}
+
+#root-shell .Select-control,
+#root-shell .Select-menu-outer,
+#root-shell .VirtualizedSelectOption {
+  background: var(--flux-control-bg) !important;
+  color: var(--flux-control-text) !important;
+  border-color: var(--flux-border) !important;
+}
+
+#root-shell .dash-graph,
+#root-shell .js-plotly-plot {
+  border-radius: 12px;
+}
+
+/* Recruitment donut readability */
+#root-shell .flux-donut-card .js-plotly-plot text {
+  fill: #111827;
+}
+
+.theme-dark #root-shell .flux-donut-card .js-plotly-plot text {
+  fill: #eaf2ff !important;
+}
+
+#root-shell hr {
+  border-color: var(--flux-border);
+  opacity: 1;
+}
