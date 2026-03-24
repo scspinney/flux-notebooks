@@ -32,3 +32,5 @@ rename_bids_anat_func.py
 
 # Agentic 
 .claude
+.flux_users.json
+requirements.runtime.diff.txt

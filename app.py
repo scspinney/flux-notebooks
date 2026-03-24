@@ -21,8 +21,6 @@ from flux_notebooks.config import Settings
 # ╭─────────────────────────────────────────────────────────────╮
 # │  Flux Assistant (LLM chat integration)                      │
 # ╰─────────────────────────────────────────────────────────────╯
-#from flux_notebooks.components.assistant_chat import render_chat
-from flux_notebooks.callbacks.assistant_callbacks import register_assistant_callbacks, render_chat
 
 
 
@@ -61,7 +59,6 @@ def build_navbar():
         "fMRIPrep Reports",
         "REDCap Summary",
         "Subject Detail",
-        "Flux Assistant Sandbox",
     ]
     order_index = {name: i for i, name in enumerate(desired_order)}
     pages = sorted(pages, key=lambda p: order_index.get(p["name"], len(desired_order)))
@@ -309,7 +306,6 @@ app.layout = html.Div(
             id="app-shell",
             children=[
                 html.Div(dash.page_container, id="page-content", className="container-fluid px-4"),
-                render_chat(),  # 👈 Floating LLM assistant chat widget
                 html.Footer(
                     "© 2025 BIDS-Flux Dashboards",
                     className="text-center text-muted mt-5 mb-3 small",
@@ -588,7 +584,6 @@ from pages import home, bids
 home.register_callbacks(app)
 bids.register_callbacks(app)
 
-register_assistant_callbacks(app)
 
 
 # ╭─────────────────────────────────────────────────────────────╮

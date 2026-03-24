@@ -1,21 +1,39 @@
-# bytecode, caches, logs
-__pycache__/
-*.pyc
-*.pyo
-*.log
-
-# build artefacts
-book/_build/
-.mypy_cache/
-.datalad/
-.git/
+# VCS metadata
+.git
 .gitignore
+.gitattributes
+
+# Python caches / tooling
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environments / secrets / runtime state
+.venv/
+.env
+.flux_users.json
+
+# Logs
+*.log
+dash_debug.log
+
+# Build artifacts
+book/_build/
+book/notebooks/
+build/
+dist/
 *.egg-info/
 *.zip
 
-# heavy data folders (don’t copy into image)
+# Heavy local datasets and outputs (mount at runtime instead)
 data/
+superdemo/
 superdemo_real/
+superdemo_real_copy/
 derivatives/
 mriqc_reports_example/
 local_outputs/
@@ -23,7 +41,10 @@ outputs/
 tmp/
 scratch/
 
-# misc
-*.nii*
+# Large imaging files
+*.nii
 *.nii.gz
-*.html
+
+# Additional local runtime/config artifacts
+state/
+.env.*
