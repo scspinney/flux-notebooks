@@ -1,6 +1,6 @@
 # Flux Notebooks Dashboard: Docker Build & Run
 
-<<<<<<< HEAD
+
 This guide covers building and running the dashboard container using the current production Docker setup (`Dockerfile` + `requirements.runtime.txt`).
 
 ## 1. Prerequisites
@@ -39,7 +39,7 @@ docker run -d --name flux-test \
   -v /home/ubuntu/local_gitlab/flux-notebooks/data/redcap:/datasets/redcap:ro \
   flux-notebooks:test-runtime
 ```
-<<<<<<< HEAD
+
 
 ## 4. Verify startup
 
@@ -95,5 +95,4 @@ docker rmi flux-notebooks:test-runtime
 - The assistant/chat feature is disabled in this build path.
 - Container includes `git` and `git-annex` for DataLad-based dataset operations.
 - For production, inject `FLUX_SECRET_KEY` via secret management (not hardcoded).
-=======
->>>>>>> 6b22d9d86f532def83f2dfb0c72fc1a4078576bf
+
