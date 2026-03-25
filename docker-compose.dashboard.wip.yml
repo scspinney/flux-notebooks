@@ -1,0 +1,53 @@
+volumes:
+  dashboard-state:
+
+networks:
+  traefik-public:
+    external: true
+
+secrets:
+  flux_secret_key:
+    external: true
+
+services:
+
+  dashboard:
+    image: flux-notebooks:test-runtime
+    environment:
+      - FLUX_DATASET_ROOT=/data/superdemo_real
+      - FLUX_REDCAP_ROOT=/data/redcap
+      - FLUX_USERS_FILE=/state/.flux_users.json
+    volumes:
+      - /home/ubuntu/flux-notebooks/superdemo_real:/data/superdemo_real:ro
+      - /home/ubuntu/flux-notebooks/redcap:/data/redcap:ro
+      - dashboard-state:/state
+    networks:
+      - traefik-public
+    secrets:
+      - flux_secret_key
+    entrypoint: >
+      sh -c 'mkdir -p /state &&
+      chown -R 10001:10001 /state &&
+      export FLUX_SECRET_KEY="$$(cat /run/secrets/flux_secret_key)";
+      exec /usr/bin/tini -- gunicorn --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:8050 app:server'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8050/auth >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == appstack
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik-public
+        - traefik.constraint-label=traefik-public
+        - traefik.http.routers.dashboard.rule=Host(`dashboard.${DOMAIN}`)
+        - traefik.http.routers.dashboard.entrypoints=https
+        - traefik.http.routers.dashboard.tls=true
+        - traefik.http.routers.dashboard.tls.certresolver=le
+        - traefik.http.services.dashboard.loadbalancer.server.port=8050
+        # enable only after app-side Keycloak integration is done:
+        # - traefik.http.routers.dashboard.middlewares=kc_oidc
