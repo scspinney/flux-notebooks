@@ -6,6 +6,18 @@ This guide covers the current auth flow and deployment commands.
 - Access policy: pre-approved usernames only
 - First sign-up: user sets their real password once on `/auth/signup`
 
+## 0. Python environment setup (`requirements.txt`)
+
+```bash
+cd /home/ubuntu/local_gitlab/flux-notebooks
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+After activation, use `python` in the commands below.
+
 ## 1. Where user credentials live
 
 Use a persistent path, not `/tmp`.
@@ -26,25 +38,25 @@ cd /home/ubuntu/local_gitlab/flux-notebooks
 Pre-approve a user for first sign-up:
 
 ```bash
-.venv/bin/python scripts/manage_users.py --users-file ./.flux_users.json approve alice
+python scripts/manage_users.py --users-file ./.flux_users.json approve alice
 ```
 
 Seed a password directly (optional, bypasses signup page):
 
 ```bash
-.venv/bin/python scripts/manage_users.py --users-file ./.flux_users.json add alice --password 'StrongPassword123!'
+python scripts/manage_users.py --users-file ./.flux_users.json add alice --password 'StrongPassword123!'
 ```
 
 Reset existing password:
 
 ```bash
-.venv/bin/python scripts/manage_users.py --users-file ./.flux_users.json set-password alice --password 'NewStrongPassword123!'
+python scripts/manage_users.py --users-file ./.flux_users.json set-password alice --password 'NewStrongPassword123!'
 ```
 
 List users and status:
 
 ```bash
-.venv/bin/python scripts/manage_users.py --users-file ./.flux_users.json list
+python scripts/manage_users.py --users-file ./.flux_users.json list
 ```
 
 ## 3. Run locally (no Docker)
@@ -53,7 +65,7 @@ List users and status:
 cd /home/ubuntu/local_gitlab/flux-notebooks
 FLUX_USERS_FILE=/home/ubuntu/local_gitlab/flux-notebooks/.flux_users.json \
 FLUX_SECRET_KEY='dev-secret-change-me' \
-.venv/bin/python app.py
+python app.py
 ```
 
 Open:
