@@ -1,0 +1,67 @@
+#root-shell #auth-landing {
+  min-height: calc(100vh - 92px);
+  display: flex;
+  align-items: center;
+}
+
+#root-shell .auth-shell {
+  max-width: 760px;
+}
+
+#root-shell .auth-hero h1 {
+  font-size: clamp(1.8rem, 2.9vw, 2.4rem);
+  margin-bottom: 0.3rem;
+}
+
+#root-shell .auth-hero p {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+#root-shell .auth-panel {
+  border-radius: 16px;
+  background: var(--flux-surface) !important;
+  padding: 0.4rem;
+}
+
+#root-shell .auth-panel h3 {
+  margin-bottom: 0.25rem;
+}
+
+#root-shell .auth-panel label {
+  font-weight: 600;
+}
+
+#root-shell .auth-panel .btn {
+  border-radius: 9px;
+  font-weight: 600;
+  padding-top: 0.62rem;
+  padding-bottom: 0.62rem;
+}
+
+#root-shell .auth-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#root-shell .auth-links a {
+  color: var(--flux-link);
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+#root-shell .auth-links a:hover {
+  text-decoration: underline;
+}
+
+#root-shell #auth-feedback .alert {
+  border-radius: 10px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  #root-shell .auth-panel {
+    border-radius: 12px;
+  }
+}

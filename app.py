@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("FLUX_DATASET_ROOT", str(ROOT / "superdemo_real"))
 os.environ.setdefault("FLUX_REDCAP_ROOT", str(ROOT / "data" / "redcap"))
 AUTH_USERS_FILE = Path(os.environ.get("FLUX_USERS_FILE", str(ROOT / ".flux_users.json")))
+MIN_PASSWORD_LENGTH = int(os.environ.get("FLUX_MIN_PASSWORD_LENGTH", "10"))
 
 # Feature flag: Enable page-specific CSS loading (FR-001)
 ENABLE_PAGE_CSS = os.environ.get("FLUX_PAGE_CSS", "false").lower() in ("true", "1", "yes")
@@ -101,17 +102,52 @@ def build_navbar():
     )
 
 
+def _normalize_user_record(raw: object) -> dict | None:
+    """Support legacy hash-only records and structured records."""
+    if isinstance(raw, str):
+        return {
+            "approved": True,
+            "password_hash": raw,
+            "must_change_password": False,
+        }
+    if isinstance(raw, dict):
+        approved = bool(raw.get("approved", True))
+        password_hash = raw.get("password_hash")
+        if password_hash is None:
+            password_hash = ""
+        if not isinstance(password_hash, str):
+            return None
+        return {
+            "approved": approved,
+            "password_hash": password_hash,
+            "must_change_password": bool(raw.get("must_change_password", False)),
+        }
+    return None
+
+
 def _load_users() -> dict:
-    if AUTH_USERS_FILE.exists():
-        try:
-            return json.loads(AUTH_USERS_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            return {}
-    return {}
+    if not AUTH_USERS_FILE.exists():
+        return {}
+    try:
+        parsed = json.loads(AUTH_USERS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+
+    users = {}
+    for username, raw in parsed.items():
+        if not isinstance(username, str) or not username.strip():
+            continue
+        record = _normalize_user_record(raw)
+        if record is None:
+            continue
+        users[username] = record
+    return users
 
 
 def _save_users(users: dict) -> None:
-    AUTH_USERS_FILE.write_text(json.dumps(users, indent=2), encoding="utf-8")
+    AUTH_USERS_FILE.write_text(json.dumps(users, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _bootstrap_admin_user() -> None:
@@ -121,7 +157,11 @@ def _bootstrap_admin_user() -> None:
         return
     users = _load_users()
     if seed_user not in users:
-        users[seed_user] = generate_password_hash(seed_pass)
+        users[seed_user] = {
+            "approved": True,
+            "password_hash": generate_password_hash(seed_pass),
+            "must_change_password": False,
+        }
         _save_users(users)
 
 
@@ -131,92 +171,96 @@ def build_auth_landing() -> html.Div:
         style={"display": "none"},
         children=[
             dbc.Container(
-                className="py-5",
+                className="auth-shell py-4",
                 children=[
                     dbc.Row(
                         className="justify-content-center",
                         children=[
                             dbc.Col(
-                                lg=10,
+                                lg=6,
+                                xl=5,
                                 children=[
                                     html.Div(
-                                        className="mb-4 text-center",
+                                        className="auth-hero text-center mb-4",
                                         children=[
                                             html.H1("Welcome to BIDS-Flux", className="fw-bold"),
                                             html.P(
-                                                "Sign in to access your dashboards and study reports.",
+                                                "Access is limited to pre-approved users.",
                                                 className="text-muted",
                                             ),
                                         ],
                                     ),
-                                    dbc.Row(
-                                        className="g-4",
+                                    dbc.Card(
+                                        className="auth-panel border-0 shadow-lg",
+                                        body=True,
                                         children=[
-                                            dbc.Col(
-                                                md=6,
-                                                children=[
-                                                    dbc.Card(
-                                                        className="shadow-sm h-100",
-                                                        body=True,
-                                                        children=[
-                                                            html.H4("Log in", className="mb-3"),
-                                                            dbc.Label("Username"),
-                                                            dbc.Input(
-                                                                id="login-username",
-                                                                placeholder="Enter username",
-                                                                type="text",
-                                                            ),
-                                                            dbc.Label("Password", className="mt-3"),
-                                                            dbc.Input(
-                                                                id="login-password",
-                                                                placeholder="Enter password",
-                                                                type="password",
-                                                            ),
-                                                            dbc.Button(
-                                                                "Log in",
-                                                                id="login-btn",
-                                                                color="primary",
-                                                                className="mt-4 w-100",
-                                                                n_clicks=0,
-                                                            ),
-                                                        ],
-                                                    )
-                                                ],
-                                            ),
-                                            dbc.Col(
-                                                md=6,
-                                                children=[
-                                                    dbc.Card(
-                                                        className="shadow-sm h-100",
-                                                        body=True,
-                                                        children=[
-                                                            html.H4("Create account", className="mb-3"),
-                                                            dbc.Label("Username"),
-                                                            dbc.Input(
-                                                                id="signup-username",
-                                                                placeholder="Choose a username",
-                                                                type="text",
-                                                            ),
-                                                            dbc.Label("Password", className="mt-3"),
-                                                            dbc.Input(
-                                                                id="signup-password",
-                                                                placeholder="Choose a password",
-                                                                type="password",
-                                                            ),
-                                                            dbc.Button(
-                                                                "Sign up",
-                                                                id="signup-btn",
-                                                                color="success",
-                                                                className="mt-4 w-100",
-                                                                n_clicks=0,
-                                                            ),
-                                                        ],
-                                                    )
-                                                ],
-                                            ),
+                                            html.Div(id="auth-login-section", children=[
+                                                html.H3("Sign in", className="mb-3"),
+                                                dbc.Label("Username"),
+                                                dbc.Input(
+                                                    id="login-username",
+                                                    placeholder="Enter username",
+                                                    type="text",
+                                                ),
+                                                dbc.Label("Password", className="mt-3"),
+                                                dbc.Input(
+                                                    id="login-password",
+                                                    placeholder="Enter password",
+                                                    type="password",
+                                                ),
+                                                dbc.Button(
+                                                    "Sign in",
+                                                    id="login-btn",
+                                                    color="primary",
+                                                    className="mt-4 w-100",
+                                                    n_clicks=0,
+                                                ),
+                                                html.Div(
+                                                    className="auth-links mt-3",
+                                                    children=[
+                                                        dcc.Link("First time here? Activate account", href="/auth/signup"),
+                                                    ],
+                                                ),
+                                            ]),
+                                            html.Div(id="auth-signup-section", style={"display": "none"}, children=[
+                                                html.H3("First Sign-Up", className="mb-3"),
+                                                html.P(
+                                                    "Use this once after your username has been approved by admin.",
+                                                    className="text-muted small mb-3",
+                                                ),
+                                                dbc.Label("Username"),
+                                                dbc.Input(
+                                                    id="signup-username",
+                                                    placeholder="Approved username",
+                                                    type="text",
+                                                ),
+                                                dbc.Label("Create password", className="mt-3"),
+                                                dbc.Input(
+                                                    id="signup-password",
+                                                    placeholder="Create password",
+                                                    type="password",
+                                                ),
+                                                dbc.Label("Confirm password", className="mt-3"),
+                                                dbc.Input(
+                                                    id="signup-confirm-password",
+                                                    placeholder="Confirm password",
+                                                    type="password",
+                                                ),
+                                                dbc.Button(
+                                                    "Activate account",
+                                                    id="signup-btn",
+                                                    color="success",
+                                                    className="mt-4 w-100",
+                                                    n_clicks=0,
+                                                ),
+                                                html.Div(
+                                                    className="auth-links mt-3",
+                                                    children=[dcc.Link("Back to sign in", href="/auth")],
+                                                ),
+                                            ]),
+                                            html.Div(id="auth-feedback", className="mt-3"),
                                         ],
                                     ),
-                                    html.Div(id="auth-feedback", className="mt-3"),
                                 ],
                             )
                         ],
@@ -352,6 +396,7 @@ def apply_theme(theme_data):
     State("login-password", "value"),
     State("signup-username", "value"),
     State("signup-password", "value"),
+    State("signup-confirm-password", "value"),
     prevent_initial_call=False,
 )
 def handle_auth(
@@ -363,16 +408,23 @@ def handle_auth(
     login_pass,
     signup_user,
     signup_pass,
+    signup_confirm_pass,
 ):
     trigger = dash.ctx.triggered_id
     current_user = session.get("flux_user")
 
     if trigger in (None, "url"):
-        if current_user and pathname == "/auth":
-            return {"authenticated": True, "user": current_user}, "/", no_update
-        if not current_user and pathname != "/auth":
+        in_auth_flow = bool(pathname and pathname.startswith("/auth"))
+        if pathname == "/auth/reset":
             return {"authenticated": False, "user": None}, "/auth", no_update
-        return {"authenticated": bool(current_user), "user": current_user}, no_update, no_update
+        if current_user and in_auth_flow:
+            return {"authenticated": True, "user": current_user}, "/", no_update
+        if not current_user and not in_auth_flow:
+            return {"authenticated": False, "user": None}, "/auth", no_update
+        return {
+            "authenticated": bool(current_user),
+            "user": current_user,
+        }, no_update, no_update
 
     if trigger == "logout-btn":
         session.pop("flux_user", None)
@@ -386,11 +438,21 @@ def handle_auth(
                 "Enter both username and password.", color="warning", dismissable=True
             )
         users = _load_users()
-        stored_hash = users.get(login_user)
-        if not stored_hash or not check_password_hash(stored_hash, login_pass):
+        record = users.get(login_user)
+        stored_hash = (record or {}).get("password_hash")
+        if not record or not record.get("approved", False):
+            return {"authenticated": False, "user": None}, no_update, dbc.Alert(
+                "Account is not approved.", color="danger", dismissable=True
+            )
+        if not stored_hash:
+            return {"authenticated": False, "user": None}, no_update, dbc.Alert(
+                "Account not activated. Use First Sign Up.", color="warning", dismissable=True
+            )
+        if not check_password_hash(stored_hash, login_pass):
             return {"authenticated": False, "user": None}, no_update, dbc.Alert(
                 "Invalid username or password.", color="danger", dismissable=True
             )
+
         session["flux_user"] = login_user
         return {"authenticated": True, "user": login_user}, "/", dbc.Alert(
             "Login successful.", color="success", dismissable=True
@@ -399,21 +461,49 @@ def handle_auth(
     if trigger == "signup-btn":
         if not signup_user or not signup_pass:
             return no_update, no_update, dbc.Alert(
-                "Choose both username and password.", color="warning", dismissable=True
+                "Enter username and password.", color="warning", dismissable=True
+            )
+        if signup_pass != signup_confirm_pass:
+            return no_update, no_update, dbc.Alert(
+                "Password and confirmation do not match.", color="danger", dismissable=True
+            )
+        if len(signup_pass) < MIN_PASSWORD_LENGTH:
+            return no_update, no_update, dbc.Alert(
+                f"Password must be at least {MIN_PASSWORD_LENGTH} characters.",
+                color="warning",
+                dismissable=True,
             )
         users = _load_users()
-        if signup_user in users:
+        record = users.get(signup_user)
+        if not record or not record.get("approved", False):
             return no_update, no_update, dbc.Alert(
-                "Username already exists.", color="danger", dismissable=True
+                "Username is not on the approved list.", color="danger", dismissable=True
             )
-        users[signup_user] = generate_password_hash(signup_pass)
+        if record.get("password_hash"):
+            return no_update, no_update, dbc.Alert(
+                "Account already activated. Please log in.", color="warning", dismissable=True
+            )
+        record["password_hash"] = generate_password_hash(signup_pass)
+        record["must_change_password"] = False
+        users[signup_user] = record
         _save_users(users)
         session["flux_user"] = signup_user
         return {"authenticated": True, "user": signup_user}, "/", dbc.Alert(
-            "Account created.", color="success", dismissable=True
+            "Account activated. You are now signed in.", color="success", dismissable=True
         )
 
     return no_update, no_update, no_update
+
+
+@app.callback(
+    Output("auth-login-section", "style"),
+    Output("auth-signup-section", "style"),
+    Input("url", "pathname"),
+)
+def sync_auth_mode(pathname):
+    if pathname == "/auth/signup":
+        return {"display": "none"}, {"display": "block"}
+    return {"display": "block"}, {"display": "none"}
 
 
 @app.callback(
